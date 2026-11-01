@@ -171,6 +171,15 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     location || event.location
   end
 
+  # The place guests should be told about. A date's own relocation wins, then a
+  # series that has moved, then the location record.
+  def venue_name
+    return relocated_to if status == 'relocated' && relocated_to.present?
+    return event.relocated_to if location_id.nil? && event.permanently_relocated? && event.relocated_to.present?
+
+    event_location&.name
+  end
+
   # Latest scheduled time at the end of this occurrence's postponement chain.
   def rescheduled_time
     visited = Set.new
@@ -322,7 +331,10 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       # postpone! moves RSVPs onto the new date and emails them from there.
       RsvpLifecycle.notify_changed!(self, 'postponed') if postponed_to_id.blank?
     when 'active'
-      ScheduleNotifier.occurrence_reactivated(self) if saved_change_to_status.first == 'cancelled'
+      case saved_change_to_status.first
+      when 'cancelled' then ScheduleNotifier.occurrence_reactivated(self)
+      when 'postponed' then ScheduleNotifier.occurrence_resumed(self)
+      end
     end
   end
 

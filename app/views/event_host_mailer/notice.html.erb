@@ -80,6 +80,12 @@
       <p>It now lasts <%= @event.duration %> minutes. It was <%= @previous_duration %> minutes.</p>
     <% end %>
   <% end %>
+<% elsif @notice == 'resumed' %>
+  <p>
+    <%= @event.title %>
+    <% if @occurrence %>on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %>
+    is back on. Current RSVPs are still in place.
+  </p>
 <% elsif @notice == 'reactivated' %>
   <p>
     <%= @event.title %>

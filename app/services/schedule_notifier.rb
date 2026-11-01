@@ -110,6 +110,22 @@ class ScheduleNotifier
       notify_previous_rsvps(occurrence)
     end
 
+    def event_resumed(event)
+      each_host(event) { |host| EventHostMailer.resumed(host, event).deliver_later }
+      each_open_occurrence(event) { |occurrence| notify_current_rsvps(occurrence, 'resumed') }
+    end
+
+    # A postponed date already moved its RSVPs onto a new date. Putting the old
+    # date back to active tells the hosts. Guests who are still on it are told
+    # their RSVP stands.
+    def occurrence_resumed(occurrence)
+      unless occurrence_hosts_silenced?
+        event = occurrence.event
+        each_host(event) { |host| EventHostMailer.resumed(host, event, occurrence: occurrence).deliver_later }
+      end
+      notify_current_rsvps(occurrence, 'resumed')
+    end
+
     def event_venue_changed(event, previous_name:, current_name:)
       each_host(event) do |host|
         EventHostMailer.venue_changed(host, event, previous_name: previous_name, current_name: current_name).deliver_later
@@ -155,6 +171,12 @@ class ScheduleNotifier
     def notify_previous_rsvps(occurrence)
       occurrence.rsvps.where(status: 'cancelled', cancelled_via: 'occurrence_cancelled').find_each do |rsvp|
         RsvpNotifier.occurrence_changed(rsvp, 'reactivated')
+      end
+    end
+
+    def notify_current_rsvps(occurrence, kind)
+      occurrence.rsvps.where.not(status: 'cancelled').find_each do |rsvp|
+        RsvpNotifier.occurrence_changed(rsvp, kind)
       end
     end
 

@@ -59,6 +59,8 @@ It now starts <%= @event.start_time.strftime('%A, %B %d, %Y at %I:%M %p') %>. It
 It now lasts <%= @event.duration %> minutes. It was <%= @previous_duration %> minutes.
 <% end %>
 <% end %>
+<% elsif @notice == 'resumed' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> is back on. Current RSVPs are still in place.
 <% elsif @notice == 'reactivated' %>
 <%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> is happening again. Earlier RSVPs were not restored. Those guests were asked to RSVP again.
 <% elsif @notice == 'venue' %>

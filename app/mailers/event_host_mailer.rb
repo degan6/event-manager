@@ -57,6 +57,17 @@ class EventHostMailer < ApplicationMailer
     compose(user, event, "#{event.title} on #{short_date(occurrence.occurs_at)} has a new location")
   end
 
+  def resumed(user, event, occurrence: nil)
+    @occurrence = occurrence
+    @notice = 'resumed'
+    label = if occurrence
+              "#{event.title} on #{short_date(occurrence.occurs_at)} is back on"
+            else
+              "#{event.title} is back on"
+            end
+    compose(user, event, label)
+  end
+
   def reactivated(user, event, occurrence: nil)
     @occurrence = occurrence
     @notice = 'reactivated'
@@ -94,7 +105,7 @@ class EventHostMailer < ApplicationMailer
   end
 
   def calendar_notice?
-    return false unless %w[rescheduled postponed relocated reactivated venue].include?(@notice)
+    return false unless %w[rescheduled postponed relocated reactivated venue resumed].include?(@notice)
     return false if @notice == 'postponed' && @occurrence.blank?
 
     true

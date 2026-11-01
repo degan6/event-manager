@@ -41,6 +41,16 @@ RSpec.describe RsvpMailer, type: :mailer do
       expect(mail.text_part.body.decoded).to include('delete the old entry yourself')
     end
 
+    it 'names a permanently relocated series by its new place' do
+      event.update!(permanently_relocated: true, relocated_to: 'The annex')
+      body = described_class.venue_changed(rsvp, previous_name: 'Shop').text_part.body.decoded
+
+      expect(body).to include('from Shop')
+      expect(body).to include('to The annex')
+      expect(described_class.venue_changed(rsvp, previous_name: 'Shop').attachments['event.ics'].body.decoded)
+        .to include('The annex')
+    end
+
     it 'tells a cancelled guest to RSVP again without pretending they are still signed up' do
       rsvp.update!(status: 'cancelled', cancelled_via: 'occurrence_cancelled')
       body = described_class.occurrence_changed(rsvp, kind: 'reactivated').text_part.body.decoded

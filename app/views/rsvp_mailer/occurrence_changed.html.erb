@@ -10,8 +10,10 @@
   <p><%= link_to 'RSVP again', @rsvp_again_url %></p>
 <% elsif @change_kind == 'venue' %>
   <p>
-    The location has changed<% if @previous_venue.present? %> from <%= @previous_venue %><% end %><% if @occurrence.event_location %> to <%= @occurrence.event_location.name %><% end %>.
+    The location has changed<% if @previous_venue.present? %> from <%= @previous_venue %><% end %><% if @current_venue.present? %> to <%= @current_venue %><% end %>.
   </p>
+<% elsif @change_kind == 'resumed' %>
+  <p>This event is back on. Your RSVP still stands, and the same link works.</p>
 <% else %>
   <p>The date or time has changed. Your RSVP still stands, and the same link works.</p>
 <% end %>

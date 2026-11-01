@@ -11,7 +11,9 @@ This event has moved to <%= @occurrence.relocated_to %>.
 This date is happening again. Your RSVP was not restored, so you'll need to RSVP again.
 <%= @rsvp_again_url %>
 <% elsif @change_kind == 'venue' %>
-The location has changed<% if @previous_venue.present? %> from <%= @previous_venue %><% end %><% if @occurrence.event_location %> to <%= @occurrence.event_location.name %><% end %>.
+The location has changed<% if @previous_venue.present? %> from <%= @previous_venue %><% end %><% if @current_venue.present? %> to <%= @current_venue %><% end %>.
+<% elsif @change_kind == 'resumed' %>
+This event is back on. Your RSVP still stands, and the same link works.
 <% else %>
 The date or time has changed. Your RSVP still stands, and the same link works.
 <% end %>

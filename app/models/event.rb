@@ -590,7 +590,10 @@ class Event < ApplicationRecord
     when 'postponed'
       ScheduleNotifier.event_postponed(self)
     when 'active'
-      ScheduleNotifier.event_reactivated(self) if saved_change_to_status.first == 'cancelled'
+      case saved_change_to_status.first
+      when 'cancelled' then ScheduleNotifier.event_reactivated(self)
+      when 'postponed' then ScheduleNotifier.event_resumed(self)
+      end
     end
   end
 
@@ -625,9 +628,11 @@ class Event < ApplicationRecord
   end
 
   def venue_changed?
-    saved_change_to_location_id? ||
-      (saved_change_to_permanently_relocated? && permanently_relocated?) ||
-      (saved_change_to_relocated_to? && permanently_relocated? && relocated_to.present?)
+    return true if saved_change_to_permanently_relocated? && permanently_relocated?
+    return true if saved_change_to_relocated_to? && permanently_relocated? && relocated_to.present?
+    return false if permanently_relocated? && relocated_to.present?
+
+    saved_change_to_location_id?
   end
 
   def current_venue_name
@@ -637,10 +642,20 @@ class Event < ApplicationRecord
   end
 
   def previous_venue_name
+    old_relocated_to = saved_change_to_relocated_to&.first
+    return old_relocated_to if old_relocated_to.present?
+    return stored_location_name if saved_change_to_permanently_relocated? && permanently_relocated?
     return Location.find_by(id: saved_change_to_location_id.first)&.name if saved_change_to_location_id?
-    return saved_change_to_relocated_to.first if saved_change_to_relocated_to?
 
     location&.name
+  end
+
+  def stored_location_name
+    if saved_change_to_location_id?
+      Location.find_by(id: saved_change_to_location_id.first)&.name
+    else
+      location&.name
+    end
   end
 
   def cancel_future_occurrences_if_permanently_cancelled

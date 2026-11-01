@@ -9,6 +9,10 @@
 - Hosts and people with an RSVP are emailed when an event is cancelled, postponed, or reactivated, or when its date, time, or location changes
 - When a cancelled event or date is happening again, people who had RSVPed are asked to RSVP again. Their previous RSVP stays cancelled
 - Those emails include an updated calendar file, and they say to delete the previous calendar entry by hand before adding the new file
+- A postponed event that is put back on its schedule emails the hosts and the people still RSVPed. Their RSVP stays in place
+
+### Security
+- Addressable is 2.9.2 and Rack is 3.2.8, which closes the current addressable and Rack advisories
 
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP

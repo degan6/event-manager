@@ -1,7 +1,7 @@
 class RsvpMailer < ApplicationMailer
   include CalendarAttachment
 
-  CALENDAR_KINDS = %w[rescheduled relocated reactivated venue].freeze
+  CALENDAR_KINDS = %w[rescheduled relocated reactivated venue resumed].freeze
 
   def confirm_email(rsvp)
     compose(rsvp, "Confirm your RSVP for #{rsvp.event_occurrence.event.title}")
@@ -47,6 +47,7 @@ class RsvpMailer < ApplicationMailer
               when 'postponed' then "#{title} has been postponed"
               when 'relocated' then "#{title} has moved"
               when 'reactivated' then "#{title} is happening again"
+              when 'resumed' then "#{title} is back on"
               else "#{title} has changed"
               end
     compose(rsvp, subject)
@@ -79,6 +80,7 @@ class RsvpMailer < ApplicationMailer
     @site_config = SiteConfig.current
     @manage_url = manage_rsvp_url(rsvp.manage_token)
     @rsvp_again_url = event_occurrence_url(@occurrence) if @change_kind == 'reactivated'
+    @current_venue = @occurrence.venue_name if @change_kind == 'venue'
     @test_mode = EmailTestMode.test_mode?
     attach_occurrences_calendar([@occurrence]) if action_name == 'confirmed' || @calendar_note
     delivery = { to: EmailTestMode.recipient_for(rsvp.email), subject: subject_for(subject) }

@@ -150,5 +150,35 @@ RSpec.describe ScheduleNotifier, :mail do
         .to have_enqueued_mail(EventHostMailer, :venue_changed).once
         .and have_enqueued_mail(RsvpMailer, :venue_changed).once
     end
+
+    it 'names the series relocation, including the room it moved from' do
+      event.update!(location: shop)
+      clear_enqueued_jobs
+
+      expect { event.update!(permanently_relocated: true, relocated_to: 'The annex') }
+        .to have_enqueued_mail(RsvpMailer, :venue_changed).with(rsvp, previous_name: shop.name)
+    end
+  end
+
+  describe 'putting a postponed event back on' do
+    it 'tells hosts and RSVPs the event is back on and keeps the RSVP' do
+      event.postpone!(1.week.from_now, 'Weather')
+      clear_enqueued_jobs
+
+      expect { event.reactivate! }
+        .to have_enqueued_mail(EventHostMailer, :resumed).once
+        .and have_enqueued_mail(RsvpMailer, :occurrence_changed).with(rsvp, kind: 'resumed')
+
+      expect(rsvp.reload.status).to eq('confirmed')
+    end
+
+    it 'tells hosts when one postponed date is put back' do
+      occurrence.postpone!(occurrence.occurs_at + 1.week, 'Weather', host)
+      clear_enqueued_jobs
+
+      expect { occurrence.reactivate!(host) }
+        .to have_enqueued_mail(EventHostMailer, :resumed).once
+        .and have_enqueued_mail(RsvpMailer, :occurrence_changed).exactly(0)
+    end
   end
 end

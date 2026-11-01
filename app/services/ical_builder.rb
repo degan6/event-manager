@@ -117,11 +117,7 @@ class IcalBuilder
         alt = Icalendar::Values::Text.new(html, { 'fmttype' => 'text/html' })
         e.append_custom_property('x-alt-desc', alt)
       end
-      place = if occurrence.status == 'relocated' && occurrence.relocated_to.present?
-                occurrence.relocated_to
-              elsif occurrence.event_location
-                occurrence.event_location.name
-              end
+      place = occurrence.venue_name
       e.location = place if place.present?
       e.url = page_url if page_url.present?
       e.organizer = organizer if organizer.present?
