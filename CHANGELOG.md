@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [v0.30.1] - 2026-11-01
+
+### Fixed
+- A venue email names the new place in the header as well as the rest of the message, including when a whole series has moved
+- Putting one postponed date back on tells hosts that date is back on, without saying the RSVPs are still on it
+
 ## [v0.30.0] - 2026-11-01
 
 ### Added

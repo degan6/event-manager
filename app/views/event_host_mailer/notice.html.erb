@@ -83,8 +83,11 @@
 <% elsif @notice == 'resumed' %>
   <p>
     <%= @event.title %>
-    <% if @occurrence %>on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %>
-    is back on. Current RSVPs are still in place.
+    <% if @occurrence %>
+      on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %> is back on.
+    <% else %>
+      is back on. Current RSVPs are still in place.
+    <% end %>
   </p>
 <% elsif @notice == 'reactivated' %>
   <p>
