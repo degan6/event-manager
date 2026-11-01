@@ -1,4 +1,6 @@
 class EventHostMailer < ApplicationMailer
+  include CalendarAttachment
+
   def added(user, event, actor:)
     @actor_label = person_label(actor)
     @notice = 'added'
@@ -9,6 +11,14 @@ class EventHostMailer < ApplicationMailer
     @actor_label = person_label(actor)
     @notice = 'removed'
     compose(user, event, "You're no longer a host of #{event.title}")
+  end
+
+  def roster_changed(user, event, actor:, member:, change:)
+    @actor_label = person_label(actor)
+    @member_label = person_label(member).presence || member.email
+    @notice = change == 'added' ? 'roster_added' : 'roster_removed'
+    verb = change == 'added' ? 'is now a host' : 'is no longer a host'
+    compose(user, event, "#{@member_label} #{verb} of #{event.title}")
   end
 
   def cancelled(user, event, occurrence: nil, reason: nil)
@@ -47,6 +57,30 @@ class EventHostMailer < ApplicationMailer
     compose(user, event, "#{event.title} on #{short_date(occurrence.occurs_at)} has a new location")
   end
 
+  def reactivated(user, event, occurrence: nil)
+    @occurrence = occurrence
+    @notice = 'reactivated'
+    label = if occurrence
+              "#{event.title} on #{short_date(occurrence.occurs_at)} is happening again"
+            else
+              "#{event.title} is happening again"
+            end
+    compose(user, event, label)
+  end
+
+  def venue_changed(user, event, previous_name:, current_name:, occurrence: nil)
+    @occurrence = occurrence
+    @previous_venue = previous_name
+    @current_venue = current_name
+    @notice = 'venue'
+    label = if occurrence
+              "#{event.title} on #{short_date(occurrence.occurs_at)} has a new location"
+            else
+              "#{event.title} has a new location"
+            end
+    compose(user, event, label)
+  end
+
   private
 
   def compose(user, event, subject)
@@ -55,7 +89,24 @@ class EventHostMailer < ApplicationMailer
     @site_config = SiteConfig.current
     @test_mode = EmailTestMode.test_mode?
     @url = @occurrence ? event_occurrence_url(@occurrence) : event_url(event)
+    attach_occurrences_calendar(calendar_occurrences) if calendar_notice?
     mail(to: EmailTestMode.recipient_for(user.email), subject: subject_for(subject), template_name: 'notice')
+  end
+
+  def calendar_notice?
+    return false unless %w[rescheduled postponed relocated reactivated venue].include?(@notice)
+    return false if @notice == 'postponed' && @occurrence.blank?
+
+    true
+  end
+
+  def calendar_occurrences
+    return [@occurrence.postponed_to].compact if @notice == 'postponed'
+    return [@occurrence] if @occurrence
+
+    scope = @event.occurrences.not_yet_ended.where(status: EventOccurrence::LISTABLE_STATUSES)
+    scope = scope.where(location_id: nil) if @notice == 'venue'
+    scope.to_a
   end
 
   def cancelled_subject(event, occurrence)

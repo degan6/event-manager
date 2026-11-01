@@ -5,6 +5,16 @@
   <p>This event has been postponed<% if @event.postponed_until.present? %> until <%= @event.postponed_until.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %><% if @event.cancellation_reason.present? %>: <%= @event.cancellation_reason %><% end %>. Your RSVP is still on file for the original date.</p>
 <% elsif @change_kind == 'relocated' %>
   <p>This event has moved to <%= @occurrence.relocated_to %>.</p>
+<% elsif @change_kind == 'reactivated' %>
+  <p>This date is happening again. Your RSVP was not restored, so you'll need to RSVP again.</p>
+  <p><%= link_to 'RSVP again', @rsvp_again_url %></p>
+<% elsif @change_kind == 'venue' %>
+  <p>
+    The location has changed<% if @previous_venue.present? %> from <%= @previous_venue %><% end %><% if @occurrence.event_location %> to <%= @occurrence.event_location.name %><% end %>.
+  </p>
 <% else %>
   <p>The date or time has changed. Your RSVP still stands, and the same link works.</p>
+<% end %>
+<% if @calendar_attached %>
+  <p>A calendar file is attached. If this event is already on your calendar, delete the old entry yourself before adding this file. Adding it does not remove the previous one.</p>
 <% end %>

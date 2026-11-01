@@ -11,13 +11,29 @@
       You were added as a host of <%= link_to @event.title, @url %>.
     <% end %>
   </p>
-  <p>You'll be emailed if this event is cancelled, postponed, or its date or time changes.</p>
+  <p>You'll be emailed if this event is cancelled, postponed, reactivated, or its date, time, or location changes.</p>
 <% elsif @notice == 'removed' %>
   <p>
     <% if @actor_label.present? %>
       <%= @actor_label %> removed you as a host of <%= link_to @event.title, @url %>.
     <% else %>
       You were removed as a host of <%= link_to @event.title, @url %>.
+    <% end %>
+  </p>
+<% elsif @notice == 'roster_added' %>
+  <p>
+    <% if @actor_label.present? %>
+      <%= @actor_label %> added <%= @member_label %> as a host of <%= link_to @event.title, @url %>.
+    <% else %>
+      <%= @member_label %> was added as a host of <%= link_to @event.title, @url %>.
+    <% end %>
+  </p>
+<% elsif @notice == 'roster_removed' %>
+  <p>
+    <% if @actor_label.present? %>
+      <%= @actor_label %> removed <%= @member_label %> as a host of <%= link_to @event.title, @url %>.
+    <% else %>
+      <%= @member_label %> is no longer a host of <%= link_to @event.title, @url %>.
     <% end %>
   </p>
 <% elsif @notice == 'cancelled' %>
@@ -64,6 +80,22 @@
       <p>It now lasts <%= @event.duration %> minutes. It was <%= @previous_duration %> minutes.</p>
     <% end %>
   <% end %>
+<% elsif @notice == 'reactivated' %>
+  <p>
+    <%= @event.title %>
+    <% if @occurrence %>on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %>
+    is happening again. Earlier RSVPs were not restored. Those guests were asked to RSVP again.
+  </p>
+<% elsif @notice == 'venue' %>
+  <p>
+    <%= @event.title %>
+    <% if @occurrence %>on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %>
+    has a new location<% if @previous_venue.present? %>. It was <%= @previous_venue %><% end %><% if @current_venue.present? %>. It is now <%= @current_venue %><% end %>.
+  </p>
+<% end %>
+
+<% if @calendar_attached %>
+  <p>A calendar file is attached. If this event is already on your calendar, delete the old entry yourself before adding this file. Adding it does not remove the previous one.</p>
 <% end %>
 
 <p><%= link_to 'View the event', @url %></p>

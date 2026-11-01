@@ -56,9 +56,10 @@ RSpec.describe 'EventHosts', type: :request do
         expect(flash[:notice]).to include(nameless.email)
       end
 
-      it 'emails the person who was added', :mail do
+      it 'emails the person who was added and the other hosts', :mail do
         expect { post event_event_hosts_path(event), params: { user_id: other_user.id } }
           .to have_enqueued_mail(EventHostMailer, :added).once
+          .and have_enqueued_mail(EventHostMailer, :roster_changed).once
       end
 
       it 'does not email anyone when the person is already a host', :mail do
@@ -66,6 +67,8 @@ RSpec.describe 'EventHosts', type: :request do
 
         expect { post event_event_hosts_path(event), params: { user_id: other_user.id } }
           .not_to have_enqueued_mail(EventHostMailer, :added)
+        expect { post event_event_hosts_path(event), params: { user_id: other_user.id } }
+          .not_to have_enqueued_mail(EventHostMailer, :roster_changed)
       end
 
       it 'finds the event by slug' do
@@ -138,11 +141,12 @@ RSpec.describe 'EventHosts', type: :request do
       expect(flash[:alert]).to include('must remain as a host')
     end
 
-    it 'emails the person who was removed', :mail do
+    it 'emails the person who was removed and the hosts who remain', :mail do
       event.add_host(other_user)
 
       expect { delete event_event_host_path(event, other_user) }
         .to have_enqueued_mail(EventHostMailer, :removed).once
+        .and have_enqueued_mail(EventHostMailer, :roster_changed).once
     end
 
     it 'does not email when the only host cannot be removed', :mail do

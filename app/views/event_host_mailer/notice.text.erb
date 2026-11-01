@@ -10,12 +10,24 @@ Hi <%= @user.name.presence || @user.username.presence || 'there' %>,
 <% else %>
 You were added as a host of <%= @event.title %>.
 <% end %>
-You'll be emailed if this event is cancelled, postponed, or its date or time changes.
+You'll be emailed if this event is cancelled, postponed, reactivated, or its date, time, or location changes.
 <% elsif @notice == 'removed' %>
 <% if @actor_label.present? %>
 <%= @actor_label %> removed you as a host of <%= @event.title %>.
 <% else %>
 You were removed as a host of <%= @event.title %>.
+<% end %>
+<% elsif @notice == 'roster_added' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> added <%= @member_label %> as a host of <%= @event.title %>.
+<% else %>
+<%= @member_label %> was added as a host of <%= @event.title %>.
+<% end %>
+<% elsif @notice == 'roster_removed' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> removed <%= @member_label %> as a host of <%= @event.title %>.
+<% else %>
+<%= @member_label %> is no longer a host of <%= @event.title %>.
 <% end %>
 <% elsif @notice == 'cancelled' %>
 <%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> was cancelled<% if @reason.present? %>: <%= @reason %><% end %>.
@@ -47,6 +59,13 @@ It now starts <%= @event.start_time.strftime('%A, %B %d, %Y at %I:%M %p') %>. It
 It now lasts <%= @event.duration %> minutes. It was <%= @previous_duration %> minutes.
 <% end %>
 <% end %>
+<% elsif @notice == 'reactivated' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> is happening again. Earlier RSVPs were not restored. Those guests were asked to RSVP again.
+<% elsif @notice == 'venue' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> has a new location<% if @previous_venue.present? %>. It was <%= @previous_venue %><% end %><% if @current_venue.present? %>. It is now <%= @current_venue %><% end %>.
+<% end %>
+<% if @calendar_attached %>
+A calendar file is attached. If this event is already on your calendar, delete the old entry yourself before adding this file. Adding it does not remove the previous one.
 <% end %>
 
 View the event:

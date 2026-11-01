@@ -15,15 +15,13 @@ class ScheduleNotifier
     end
 
     def host_added(event, user, actor:)
-      return if user.email.blank?
-
-      EventHostMailer.added(user, event, actor: actor).deliver_later
+      EventHostMailer.added(user, event, actor: actor).deliver_later if user.email.present?
+      tell_other_hosts(event, user, actor: actor, change: 'added')
     end
 
     def host_removed(event, user, actor:)
-      return if user.email.blank?
-
-      EventHostMailer.removed(user, event, actor: actor).deliver_later
+      EventHostMailer.removed(user, event, actor: actor).deliver_later if user.email.present?
+      tell_other_hosts(event, user, actor: actor, change: 'removed')
     end
 
     def event_cancelled(event, reason: nil)
@@ -93,6 +91,44 @@ class ScheduleNotifier
       end
     end
 
+    def event_reactivated(event)
+      each_host(event) do |host|
+        EventHostMailer.reactivated(host, event).deliver_later
+      end
+      event.occurrences.not_yet_ended.where(status: EventOccurrence::LISTABLE_STATUSES).find_each do |occurrence|
+        notify_previous_rsvps(occurrence)
+      end
+    end
+
+    def occurrence_reactivated(occurrence)
+      unless occurrence_hosts_silenced?
+        event = occurrence.event
+        each_host(event) do |host|
+          EventHostMailer.reactivated(host, event, occurrence: occurrence).deliver_later
+        end
+      end
+      notify_previous_rsvps(occurrence)
+    end
+
+    def event_venue_changed(event, previous_name:, current_name:)
+      each_host(event) do |host|
+        EventHostMailer.venue_changed(host, event, previous_name: previous_name, current_name: current_name).deliver_later
+      end
+      inheriting = event.occurrences.not_yet_ended.where(location_id: nil)
+      inheriting.find_each { |occurrence| notify_venue(occurrence, previous_name) }
+    end
+
+    def occurrence_venue_changed(occurrence, previous_name:, current_name:)
+      return if occurrence_hosts_silenced?
+
+      event = occurrence.event
+      each_host(event) do |host|
+        EventHostMailer.venue_changed(host, event, previous_name: previous_name, current_name: current_name,
+                                                   occurrence: occurrence).deliver_later
+      end
+      notify_venue(occurrence, previous_name)
+    end
+
     private
 
     def each_host(event)
@@ -106,6 +142,26 @@ class ScheduleNotifier
 
     def each_open_occurrence(event, &)
       event.occurrences.not_yet_ended.find_each(&)
+    end
+
+    def tell_other_hosts(event, member, actor:, change:)
+      each_host(event) do |host|
+        next if host.id == member.id
+
+        EventHostMailer.roster_changed(host, event, actor: actor, member: member, change: change).deliver_later
+      end
+    end
+
+    def notify_previous_rsvps(occurrence)
+      occurrence.rsvps.where(status: 'cancelled', cancelled_via: 'occurrence_cancelled').find_each do |rsvp|
+        RsvpNotifier.occurrence_changed(rsvp, 'reactivated')
+      end
+    end
+
+    def notify_venue(occurrence, previous_name)
+      occurrence.rsvps.where.not(status: 'cancelled').find_each do |rsvp|
+        RsvpNotifier.venue_changed(rsvp, previous_name: previous_name)
+      end
     end
 
     def occurrence_hosts_silenced?

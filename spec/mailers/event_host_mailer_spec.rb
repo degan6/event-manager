@@ -45,6 +45,9 @@ RSpec.describe EventHostMailer, type: :mailer do
       expect(body).to include('The schedule for Open Shop was updated')
       expect(body).to include('06:00 PM')
       expect(body).to include('07:00 PM')
+      expect(body).to include('delete the old entry yourself')
+      expect(described_class.rescheduled(host, event, previous_start: previous, previous_duration: event.duration)
+                            .attachments['event.ics'].body.decoded).to include('Open Shop')
     end
   end
 

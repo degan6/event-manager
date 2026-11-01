@@ -32,4 +32,22 @@ RSpec.describe RsvpMailer, type: :mailer do
 
     expect(described_class.confirmed(rsvp).to).to eq(['qa@example.com'])
   end
+
+  describe '#occurrence_changed' do
+    it 'attaches a calendar file and says to delete the old entry' do
+      mail = described_class.occurrence_changed(rsvp, kind: 'rescheduled')
+
+      expect(mail.attachments['event.ics'].body.decoded).to include('Open Shop')
+      expect(mail.text_part.body.decoded).to include('delete the old entry yourself')
+    end
+
+    it 'tells a cancelled guest to RSVP again without pretending they are still signed up' do
+      rsvp.update!(status: 'cancelled', cancelled_via: 'occurrence_cancelled')
+      body = described_class.occurrence_changed(rsvp, kind: 'reactivated').text_part.body.decoded
+
+      expect(body).to include('Your RSVP was not restored')
+      expect(body).to include("you'll need to RSVP again")
+      expect(body).to include(event_occurrence_url(occurrence))
+    end
+  end
 end

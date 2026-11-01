@@ -97,4 +97,58 @@ RSpec.describe ScheduleNotifier, :mail do
       .to have_enqueued_mail(EventHostMailer, :relocated).once
       .and have_enqueued_mail(RsvpMailer, :occurrence_changed).with(rsvp, kind: 'relocated')
   end
+
+  describe 'reactivating' do
+    it 'asks previous RSVPs to sign up again and does not restore them' do
+      event.cancel!('Weather')
+      clear_enqueued_jobs
+
+      expect { event.reactivate! }
+        .to have_enqueued_mail(EventHostMailer, :reactivated).once
+        .and have_enqueued_mail(RsvpMailer, :occurrence_changed).with(rsvp, kind: 'reactivated')
+
+      expect(rsvp.reload).to be_cancelled
+    end
+
+    it 'does the same when one cancelled date is reactivated' do
+      create(:rsvp, event_occurrence: occurrence, status: 'cancelled', cancelled_via: 'self', email: 'opted-out@example.com')
+      occurrence.cancel!('Weather', host)
+      clear_enqueued_jobs
+
+      expect { occurrence.reactivate!(host) }
+        .to have_enqueued_mail(RsvpMailer, :occurrence_changed).once
+        .and have_enqueued_mail(RsvpMailer, :occurrence_changed).with(rsvp, kind: 'reactivated')
+
+      expect(rsvp.reload).to be_cancelled
+    end
+  end
+
+  describe 'changing the venue' do
+    let(:shop) { create(:location, name: "Shop #{SecureRandom.hex(3)}") }
+    let(:hall) { create(:location, name: "Hall #{SecureRandom.hex(3)}") }
+
+    it 'emails hosts and RSVPs when the event location changes' do
+      event.update!(location: shop)
+      clear_enqueued_jobs
+
+      expect { event.update!(location: hall) }
+        .to have_enqueued_mail(EventHostMailer, :venue_changed).once
+        .and have_enqueued_mail(RsvpMailer, :venue_changed).once
+    end
+
+    it 'leaves guests alone when their date has its own location' do
+      occurrence.update!(location: shop)
+      clear_enqueued_jobs
+
+      expect { event.update!(location: hall) }
+        .to have_enqueued_mail(EventHostMailer, :venue_changed).once
+        .and have_enqueued_mail(RsvpMailer, :venue_changed).exactly(0)
+    end
+
+    it 'emails hosts and RSVPs when one date overrides the location' do
+      expect { occurrence.update!(location: hall) }
+        .to have_enqueued_mail(EventHostMailer, :venue_changed).once
+        .and have_enqueued_mail(RsvpMailer, :venue_changed).once
+    end
+  end
 end

@@ -306,6 +306,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     elsif saved_change_to_occurs_at? || saved_change_to_duration_override?
       notify_time_change
     end
+    notify_venue_change if saved_change_to_location_id?
   end
 
   def notify_status_change
@@ -320,7 +321,14 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       ScheduleNotifier.occurrence_postponed(self)
       # postpone! moves RSVPs onto the new date and emails them from there.
       RsvpLifecycle.notify_changed!(self, 'postponed') if postponed_to_id.blank?
+    when 'active'
+      ScheduleNotifier.occurrence_reactivated(self) if saved_change_to_status.first == 'cancelled'
     end
+  end
+
+  def notify_venue_change
+    previous = Location.find_by(id: saved_change_to_location_id.first)
+    ScheduleNotifier.occurrence_venue_changed(self, previous_name: previous&.name, current_name: event_location&.name)
   end
 
   def notify_time_change

@@ -293,6 +293,12 @@ RSpec.describe IcalBuilder do
       expect(property(ical, 'LOCATION')).to eq('LOCATION:Section 2')
     end
 
+    it 'uses the relocated place as the calendar location' do
+      occurrence.update!(status: 'relocated', relocated_to: 'Section 3')
+
+      expect(property(ical, 'LOCATION')).to eq('LOCATION:Section 3')
+    end
+
     it 'omits the location when neither occurrence nor event has one' do
       expect(property(ical, 'LOCATION')).to be_nil
     end

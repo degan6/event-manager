@@ -32,6 +32,7 @@ class Event < ApplicationRecord
   after_update :reactivate_relocated_occurrences_if_no_longer_relocated
   after_update :notify_status_change
   after_update :notify_schedule_edit
+  after_update :notify_venue_change
 
   attr_accessor :current_user_for_journal, :pool_images, :exclusive_actor, :override_exclusive_conflict,
                 :exclusive_review_notification
@@ -582,11 +583,14 @@ class Event < ApplicationRecord
   def notify_status_change
     return unless saved_change_to_status?
 
-    if status == 'cancelled'
+    case status
+    when 'cancelled'
       RsvpLifecycle.cancel_event!(self)
       ScheduleNotifier.event_cancelled(self)
-    elsif status == 'postponed'
+    when 'postponed'
       ScheduleNotifier.event_postponed(self)
+    when 'active'
+      ScheduleNotifier.event_reactivated(self) if saved_change_to_status.first == 'cancelled'
     end
   end
 
@@ -611,6 +615,32 @@ class Event < ApplicationRecord
 
     old_rule, new_rule = saved_change_to_recurrence_rule
     schedule_times(old_rule) != schedule_times(new_rule)
+  end
+
+  def notify_venue_change
+    return unless venue_changed?
+    return if saved_change_to_status? && %w[cancelled postponed].include?(status)
+
+    ScheduleNotifier.event_venue_changed(self, previous_name: previous_venue_name, current_name: current_venue_name)
+  end
+
+  def venue_changed?
+    saved_change_to_location_id? ||
+      (saved_change_to_permanently_relocated? && permanently_relocated?) ||
+      (saved_change_to_relocated_to? && permanently_relocated? && relocated_to.present?)
+  end
+
+  def current_venue_name
+    return relocated_to if permanently_relocated? && relocated_to.present?
+
+    location&.name
+  end
+
+  def previous_venue_name
+    return Location.find_by(id: saved_change_to_location_id.first)&.name if saved_change_to_location_id?
+    return saved_change_to_relocated_to.first if saved_change_to_relocated_to?
+
+    location&.name
   end
 
   def cancel_future_occurrences_if_permanently_cancelled
