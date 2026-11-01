@@ -56,6 +56,18 @@ RSpec.describe 'EventHosts', type: :request do
         expect(flash[:notice]).to include(nameless.email)
       end
 
+      it 'emails the person who was added', :mail do
+        expect { post event_event_hosts_path(event), params: { user_id: other_user.id } }
+          .to have_enqueued_mail(EventHostMailer, :added).once
+      end
+
+      it 'does not email anyone when the person is already a host', :mail do
+        event.add_host(other_user)
+
+        expect { post event_event_hosts_path(event), params: { user_id: other_user.id } }
+          .not_to have_enqueued_mail(EventHostMailer, :added)
+      end
+
       it 'finds the event by slug' do
         post event_event_hosts_path(event.slug), params: { user_id: other_user.id }
 
@@ -124,6 +136,18 @@ RSpec.describe 'EventHosts', type: :request do
 
       expect(response).to redirect_to(event)
       expect(flash[:alert]).to include('must remain as a host')
+    end
+
+    it 'emails the person who was removed', :mail do
+      event.add_host(other_user)
+
+      expect { delete event_event_host_path(event, other_user) }
+        .to have_enqueued_mail(EventHostMailer, :removed).once
+    end
+
+    it 'does not email when the only host cannot be removed', :mail do
+      expect { delete event_event_host_path(event, creator) }
+        .not_to have_enqueued_mail(EventHostMailer, :removed)
     end
 
     it 'lets the creator be removed once a co-host exists' do

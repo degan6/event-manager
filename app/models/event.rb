@@ -30,6 +30,8 @@ class Event < ApplicationRecord
   after_update :regenerate_occurrences_if_needed, if: :schedule_affecting_fields_changed?
   after_update :cancel_future_occurrences_if_permanently_cancelled
   after_update :reactivate_relocated_occurrences_if_no_longer_relocated
+  after_update :notify_status_change
+  after_update :notify_schedule_edit
 
   attr_accessor :current_user_for_journal, :pool_images, :exclusive_actor, :override_exclusive_conflict,
                 :exclusive_review_notification
@@ -152,20 +154,21 @@ class Event < ApplicationRecord
     visibility == 'private'
   end
 
-  # Mark event as postponed
+  # Mark event as postponed. Hosts and current RSVPs are emailed from the
+  # status-change callback so a direct status edit uses the same path.
   def postpone!(until_date, reason = nil)
     update(status: 'postponed', postponed_until: until_date, cancellation_reason: reason)
   end
 
-  # Mark event as cancelled
+  # Mark event as cancelled. RSVPs on dates that have not ended are cancelled
+  # and emailed from the status-change callback.
   def cancel!(reason = nil)
-    result = update(status: 'cancelled', cancellation_reason: reason)
-    RsvpLifecycle.cancel_event!(self) if result
-    result
+    update(status: 'cancelled', cancellation_reason: reason)
   end
 
   def soft_delete
     RsvpLifecycle.cancel_event!(self)
+    ScheduleNotifier.event_cancelled(self, reason: cancellation_reason.presence || 'This event was deleted.')
     super
   end
 
@@ -567,21 +570,60 @@ class Event < ApplicationRecord
     # Regenerate occurrences when schedule-affecting fields change
     # Only triggered by: start_time, recurrence_type, recurrence_rule,
     # max_occurrences, permanently_cancelled, permanently_relocated, default_to_cancelled
-    regenerate_future_occurrences!
+    # Clock-time edits email hosts once, after this save. A dropped date that
+    # still has RSVPs emails the hosts on its own.
+    ScheduleNotifier.silence_occurrence_hosts { regenerate_future_occurrences! }
   rescue StandardError => e
     Rails.logger.error "Failed to regenerate occurrences for event #{id}: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(5).join("\n")
     raise # Re-raise to rollback the transaction
   end
 
+  def notify_status_change
+    return unless saved_change_to_status?
+
+    if status == 'cancelled'
+      RsvpLifecycle.cancel_event!(self)
+      ScheduleNotifier.event_cancelled(self)
+    elsif status == 'postponed'
+      ScheduleNotifier.event_postponed(self)
+    end
+  end
+
+  def notify_schedule_edit
+    return if saved_change_to_status? && %w[cancelled postponed].include?(status)
+    return unless schedule_notice_needed?
+
+    ScheduleNotifier.event_rescheduled(
+      self,
+      previous_start: saved_change_to_start_time&.first || start_time,
+      previous_duration: saved_change_to_duration&.first || duration
+    )
+  end
+
+  def schedule_notice_needed?
+    saved_change_to_start_time? || saved_change_to_duration? || saved_change_to_recurrence_type? ||
+      recurrence_rule_materially_changed?
+  end
+
+  def recurrence_rule_materially_changed?
+    return false unless saved_change_to_recurrence_rule?
+
+    old_rule, new_rule = saved_change_to_recurrence_rule
+    schedule_times(old_rule) != schedule_times(new_rule)
+  end
+
   def cancel_future_occurrences_if_permanently_cancelled
     return unless saved_change_to_permanently_cancelled? && permanently_cancelled?
 
-    # Cancel all future active occurrences when event becomes permanently cancelled
-    occurrences.where('occurs_at > ?', Time.current).where(status: 'active').find_each do |occ|
-      occ.update!(status: 'cancelled', cancellation_reason: 'Event permanently cancelled')
-      RsvpLifecycle.cancel_occurrence!(occ)
+    # Cancel all future active occurrences when event becomes permanently cancelled.
+    # The occurrence callback tells the RSVPs. Hosts get a single series notice.
+    ScheduleNotifier.silence_occurrence_hosts do
+      occurrences.where('occurs_at > ?', Time.current).where(status: 'active').find_each do |occ|
+        occ.update!(status: 'cancelled', cancellation_reason: 'Event permanently cancelled')
+      end
     end
+    ScheduleNotifier.event_cancelled(self, reason: 'This event will not continue.')
   end
 
   def reactivate_relocated_occurrences_if_no_longer_relocated

@@ -37,7 +37,12 @@ class RsvpMailer < ApplicationMailer
   def occurrence_changed(rsvp, kind:)
     @change_kind = kind
     title = rsvp.event_occurrence.event.title
-    subject = kind == 'cancelled' ? "#{title} has been cancelled" : "#{title} has changed"
+    subject = case kind
+              when 'cancelled' then "#{title} has been cancelled"
+              when 'postponed' then "#{title} has been postponed"
+              when 'relocated' then "#{title} has moved"
+              else "#{title} has changed"
+              end
     compose(rsvp, subject)
   end
 

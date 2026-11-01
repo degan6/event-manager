@@ -4,6 +4,7 @@
 <p><%= @event.title %></p>
 <p>
   <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+  to <%= (@occurrence.occurs_at + @occurrence.duration.minutes).strftime('%I:%M %p') %>
   <% if @occurrence.event_location %>at <%= @occurrence.event_location.name %><% end %>
 </p>
 <p>Manage your RSVP: <%= link_to 'Open your RSVP', @manage_url %></p>

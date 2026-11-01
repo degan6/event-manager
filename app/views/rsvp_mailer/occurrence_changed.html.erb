@@ -1,8 +1,10 @@
 <%= render 'details' %>
 <% if @change_kind == 'cancelled' %>
   <p>This event has been cancelled<% if @occurrence.cancellation_reason.present? %>: <%= @occurrence.cancellation_reason %><% end %>. Your RSVP is cancelled and will not be restored if the event is reactivated.</p>
+<% elsif @change_kind == 'postponed' %>
+  <p>This event has been postponed<% if @event.postponed_until.present? %> until <%= @event.postponed_until.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %><% if @event.cancellation_reason.present? %>: <%= @event.cancellation_reason %><% end %>. Your RSVP is still on file for the original date.</p>
 <% elsif @change_kind == 'relocated' %>
   <p>This event has moved to <%= @occurrence.relocated_to %>.</p>
 <% else %>
-  <p>The date or time has changed. Your RSVP moved with it and the same link still works.</p>
+  <p>The date or time has changed. Your RSVP still stands, and the same link works.</p>
 <% end %>

@@ -125,6 +125,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   after_update :log_update
   after_update :propagate_rescheduled_time_to_predecessors!, if: :saved_change_to_occurs_at?
+  after_update :notify_schedule_change
   after_save :log_banner_change
 
   attr_accessor :current_user_for_journal
@@ -248,6 +249,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       new_occurrence.propagate_rescheduled_time_to_predecessors!
 
       log_status_change('postponed', reason, user) if user
+      # Hosts are emailed from the status callback. Guests move with the new date.
       RsvpLifecycle.transfer!(self, new_occurrence)
       success = true
     end
@@ -261,10 +263,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def cancel!(reason = nil, user = nil)
     self.current_user_for_journal = user if user
     result = update(status: 'cancelled', cancellation_reason: reason)
-    if result
-      log_status_change('cancelled', reason, user) if user
-      RsvpLifecycle.cancel_occurrence!(self)
-    end
+    log_status_change('cancelled', reason, user) if result && user
     result
   end
 
@@ -272,10 +271,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def relocate!(new_location, reason = nil, user = nil)
     self.current_user_for_journal = user if user
     result = update(status: 'relocated', relocated_to: new_location, cancellation_reason: reason)
-    if result
-      log_status_change('relocated', reason, user) if user
-      RsvpLifecycle.notify_changed!(self, 'relocated')
-    end
+    log_status_change('relocated', reason, user) if result && user
     result
   end
 
@@ -294,11 +290,53 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   def soft_delete
+    had_rsvps = rsvps.where.not(status: 'cancelled').exists?
     RsvpLifecycle.cancel_occurrence!(self)
+    ScheduleNotifier.occurrence_cancelled(self, force: had_rsvps)
     super
   end
 
   private
+
+  # Status and time edits from the occurrence form, the cancel and postpone
+  # actions, and a direct update all come through here.
+  def notify_schedule_change
+    if saved_change_to_status?
+      notify_status_change
+    elsif saved_change_to_occurs_at? || saved_change_to_duration_override?
+      notify_time_change
+    end
+  end
+
+  def notify_status_change
+    case status
+    when 'cancelled'
+      RsvpLifecycle.cancel_occurrence!(self)
+      ScheduleNotifier.occurrence_cancelled(self)
+    when 'relocated'
+      RsvpLifecycle.notify_changed!(self, 'relocated')
+      ScheduleNotifier.occurrence_relocated(self)
+    when 'postponed'
+      ScheduleNotifier.occurrence_postponed(self)
+      # postpone! moves RSVPs onto the new date and emails them from there.
+      RsvpLifecycle.notify_changed!(self, 'postponed') if postponed_to_id.blank?
+    end
+  end
+
+  def notify_time_change
+    RsvpLifecycle.notify_changed!(self, 'rescheduled')
+    ScheduleNotifier.occurrence_rescheduled(
+      self,
+      previous_start: saved_change_to_occurs_at&.first || occurs_at,
+      previous_duration: previous_duration_for_notice
+    )
+  end
+
+  def previous_duration_for_notice
+    return unless saved_change_to_duration_override
+
+    saved_change_to_duration_override.first || event.duration
+  end
 
   def normalize_custom_description_fields
     self.custom_description_html = EventDescription.sanitize(custom_description_html)

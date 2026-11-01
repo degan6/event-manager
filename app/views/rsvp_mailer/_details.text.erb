@@ -3,7 +3,7 @@ TEST MODE: this message was redirected to the site test address.
 
 <% end %>
 <%= @event.title %>
-<%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+<%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %> to <%= (@occurrence.occurs_at + @occurrence.duration.minutes).strftime('%I:%M %p') %>
 <% if @occurrence.event_location %>
 Location: <%= @occurrence.event_location.name %>
 <% end %>

@@ -305,11 +305,9 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def sync_rsvps_after_update
-    if @occurrence.saved_change_to_status? && @occurrence.status == 'cancelled'
-      RsvpLifecycle.cancel_occurrence!(@occurrence)
-    elsif @occurrence.saved_change_to_occurs_at?
-      RsvpLifecycle.notify_changed!(@occurrence, 'rescheduled')
-    end
+    # Cancellation, relocation, postponement, and date or duration edits email
+    # hosts and RSVPs from the occurrence callback. Capacity still has to be
+    # applied after the save so a larger cap can offer open spots.
     RsvpLifecycle.occurrence_capacity_changed!(@occurrence)
   end
 
