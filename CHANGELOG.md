@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [v0.30.0] - 2026-11-01
+
+### Added
+- Hosts are emailed when they are added or removed, and the other hosts are told as well
+- Hosts and people with an RSVP are emailed when an event is cancelled, postponed, or reactivated, or when its date, time, or location changes
+- When a cancelled event or date is happening again, people who had RSVPed are asked to RSVP again. Their previous RSVP stays cancelled
+- Those emails include an updated calendar file, and they say to delete the previous calendar entry by hand before adding the new file
+
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
