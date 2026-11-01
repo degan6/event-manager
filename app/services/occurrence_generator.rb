@@ -51,6 +51,7 @@ class OccurrenceGenerator
     end
 
     occurrence_status = event.default_to_cancelled? ? 'cancelled' : 'active'
+    created = []
     scheduled_dates.each do |scheduled_time|
       scheduled_date = scheduled_time.in_time_zone(Time.zone).to_date
       existing = existing_by_date[scheduled_date]
@@ -60,20 +61,17 @@ class OccurrenceGenerator
         # and only normalize wall-clock time for active scheduled occurrences.
         update_occurrence_time_if_needed(existing, scheduled_time) if existing.status == 'active'
       else
-        save_occurrence(event.occurrences.build(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status))
+        created << save_occurrence(
+          event.occurrences.build(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status)
+        )
       end
     end
 
-    # Remove occurrences that are no longer scheduled (only active ones, never in-progress).
-    # Preserve active occurrences that were manually rescheduled off the recurrence schedule.
-    existing_by_date.each do |date, occ|
-      next if scheduled_date_set.include?(date)
-      next unless occ.status == 'active'
-      next if manually_rescheduled?(occ)
-      next if occ.occurs_at <= Time.current && (occ.occurs_at + occ.duration.minutes) > Time.current
-
-      occ.destroy
-    end
+    removed = unscheduled_active(existing_by_date, scheduled_date_set)
+    # A one-time event moved to another day used to drop the old date and
+    # cancel its RSVPs. Keep those RSVPs on the new date and tell people it moved.
+    rehome_replaced_once(removed, created)
+    removed.each { |occ| discard_from_schedule(occ) }
   end
 
   # Get future scheduled dates based on recurrence rule
@@ -112,14 +110,45 @@ class OccurrenceGenerator
   # Update an occurrence's time if it doesn't match the scheduled time
   def update_occurrence_time_if_needed(occurrence, scheduled_time)
     canonical_time = canonicalize_time(scheduled_time)
-    return if occurrence.occurs_at.utc == canonical_time.utc
+    previous = occurrence.occurs_at
+    return if previous.utc == canonical_time.utc
 
     occurrence.update_column(:occurs_at, canonical_time) # rubocop:disable Rails/SkipsModelValidations
     occurrence.reload
     occurrence.propagate_rescheduled_time_to_predecessors!
+    # update_column skips the occurrence callback that normally sends these.
+    RsvpLifecycle.notify_changed!(occurrence, 'rescheduled')
+    ScheduleNotifier.occurrence_rescheduled(occurrence, previous_start: previous)
   end
 
   private
+
+  def unscheduled_active(existing_by_date, scheduled_date_set)
+    existing_by_date.filter_map do |date, occ|
+      next if scheduled_date_set.include?(date)
+      next unless occ.status == 'active'
+      next if manually_rescheduled?(occ)
+      next if occ.occurs_at <= Time.current && (occ.occurs_at + occ.duration.minutes) > Time.current
+
+      occ
+    end
+  end
+
+  def rehome_replaced_once(removed, created)
+    return unless event.recurrence_type == 'once'
+    return unless removed.one? && created.one?
+    return unless created.first.status == 'active'
+
+    RsvpLifecycle.transfer!(removed.first, created.first)
+  end
+
+  def discard_from_schedule(occurrence)
+    if occurrence.cancellation_reason.blank? && occurrence.rsvps.where.not(status: 'cancelled').exists?
+      reason = 'This date was removed from the schedule'
+      occurrence.update_column(:cancellation_reason, reason) # rubocop:disable Rails/SkipsModelValidations
+    end
+    occurrence.destroy
+  end
 
   def save_occurrence(occurrence)
     return occurrence unless occurrence.changed? || occurrence.new_record?

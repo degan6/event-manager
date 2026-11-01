@@ -1,0 +1,74 @@
+<% if @test_mode %>
+TEST MODE: this message was redirected to the site test address.
+
+<% end %>
+Hi <%= @user.name.presence || @user.username.presence || 'there' %>,
+
+<% if @notice == 'added' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> added you as a host of <%= @event.title %>.
+<% else %>
+You were added as a host of <%= @event.title %>.
+<% end %>
+You'll be emailed if this event is cancelled, postponed, reactivated, or its date, time, or location changes.
+<% elsif @notice == 'removed' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> removed you as a host of <%= @event.title %>.
+<% else %>
+You were removed as a host of <%= @event.title %>.
+<% end %>
+<% elsif @notice == 'roster_added' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> added <%= @member_label %> as a host of <%= @event.title %>.
+<% else %>
+<%= @member_label %> was added as a host of <%= @event.title %>.
+<% end %>
+<% elsif @notice == 'roster_removed' %>
+<% if @actor_label.present? %>
+<%= @actor_label %> removed <%= @member_label %> as a host of <%= @event.title %>.
+<% else %>
+<%= @member_label %> is no longer a host of <%= @event.title %>.
+<% end %>
+<% elsif @notice == 'cancelled' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> was cancelled<% if @reason.present? %>: <%= @reason %><% end %>.
+<% if @occurrence && @event.recurring? %>
+Other dates of this event are unchanged.
+<% end %>
+<% elsif @notice == 'postponed' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> was postponed<% if @until_time %> until <%= @until_time.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %><% if @reason.present? %>: <%= @reason %><% end %>.
+<% elsif @notice == 'relocated' %>
+<%= @event.title %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %> has moved to <%= @location %><% if @reason.present? %>: <%= @reason %><% end %>.
+<% elsif @notice == 'rescheduled' %>
+<% if @schedule_only %>
+The repeating schedule for <%= @event.title %> changed. Anyone RSVPed to a date that moved or was removed has been emailed.
+<% elsif @occurrence %>
+<%= @event.title %> has a new time.
+<% if @start_changed %>
+It was <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+<% end %>
+It is now <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %> to <%= (@occurrence.occurs_at + @occurrence.duration.minutes).strftime('%I:%M %p') %>.
+<% if @duration_changed %>
+It used to last <%= @previous_duration %> minutes.
+<% end %>
+<% else %>
+The schedule for <%= @event.title %> was updated.
+<% if @start_changed %>
+It now starts <%= @event.start_time.strftime('%A, %B %d, %Y at %I:%M %p') %>. It was <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+<% end %>
+<% if @duration_changed %>
+It now lasts <%= @event.duration %> minutes. It was <%= @previous_duration %> minutes.
+<% end %>
+<% end %>
+<% elsif @notice == 'resumed' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> is back on. Current RSVPs are still in place.
+<% elsif @notice == 'reactivated' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> is happening again. Earlier RSVPs were not restored. Those guests were asked to RSVP again.
+<% elsif @notice == 'venue' %>
+<%= @event.title %><% if @occurrence %> on <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %><% end %> has a new location<% if @previous_venue.present? %>. It was <%= @previous_venue %><% end %><% if @current_venue.present? %>. It is now <%= @current_venue %><% end %>.
+<% end %>
+<% if @calendar_attached %>
+A calendar file is attached. If this event is already on your calendar, delete the old entry yourself before adding this file. Adding it does not remove the previous one.
+<% end %>
+
+View the event:
+<%= @url %>

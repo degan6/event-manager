@@ -1,4 +1,8 @@
 class RsvpMailer < ApplicationMailer
+  include CalendarAttachment
+
+  CALENDAR_KINDS = %w[rescheduled relocated reactivated venue resumed].freeze
+
   def confirm_email(rsvp)
     compose(rsvp, "Confirm your RSVP for #{rsvp.event_occurrence.event.title}")
   end
@@ -36,9 +40,25 @@ class RsvpMailer < ApplicationMailer
 
   def occurrence_changed(rsvp, kind:)
     @change_kind = kind
+    @calendar_note = CALENDAR_KINDS.include?(kind)
     title = rsvp.event_occurrence.event.title
-    subject = kind == 'cancelled' ? "#{title} has been cancelled" : "#{title} has changed"
+    subject = case kind
+              when 'cancelled' then "#{title} has been cancelled"
+              when 'postponed' then "#{title} has been postponed"
+              when 'relocated' then "#{title} has moved"
+              when 'reactivated' then "#{title} is happening again"
+              when 'resumed' then "#{title} is back on"
+              else "#{title} has changed"
+              end
     compose(rsvp, subject)
+  end
+
+  def venue_changed(rsvp, previous_name:)
+    @change_kind = 'venue'
+    @previous_venue = previous_name
+    @calendar_note = true
+    title = rsvp.event_occurrence.event.title
+    compose(rsvp, "#{title} has a new location", template_name: 'occurrence_changed')
   end
 
   def login_required(email, occurrence)
@@ -53,15 +73,19 @@ class RsvpMailer < ApplicationMailer
 
   private
 
-  def compose(rsvp, subject)
+  def compose(rsvp, subject, template_name: nil)
     @rsvp = rsvp
     @occurrence = rsvp.event_occurrence
     @event = @occurrence.event
     @site_config = SiteConfig.current
     @manage_url = manage_rsvp_url(rsvp.manage_token)
+    @rsvp_again_url = event_occurrence_url(@occurrence) if @change_kind == 'reactivated'
+    @current_venue = @occurrence.venue_name if @change_kind == 'venue'
     @test_mode = EmailTestMode.test_mode?
-    attach_calendar if action_name == 'confirmed'
-    mail(to: EmailTestMode.recipient_for(rsvp.email), subject: subject_for(subject))
+    attach_occurrences_calendar([@occurrence]) if action_name == 'confirmed' || @calendar_note
+    delivery = { to: EmailTestMode.recipient_for(rsvp.email), subject: subject_for(subject) }
+    delivery[:template_name] = template_name if template_name
+    mail(delivery)
   end
 
   def reminder_label(kind)
@@ -73,21 +97,5 @@ class RsvpMailer < ApplicationMailer
 
   def subject_for(text)
     "[#{@site_config&.organization_name || 'EventManager'}] #{text}"
-  end
-
-  def attach_calendar
-    ical = IcalBuilder.new(host: calendar_host, organization_name: @site_config&.organization_name, name: @event.title)
-                      .add_occurrence(@occurrence, page_url: event_occurrence_url(@occurrence))
-                      .to_ical
-    attachments['event.ics'] = { mime_type: 'text/calendar', content: ical }
-  end
-
-  def calendar_host
-    url = @site_config&.website_url
-    return 'rsvp' if url.blank?
-
-    URI.parse(url).host.presence || 'rsvp'
-  rescue URI::InvalidURIError
-    'rsvp'
   end
 end

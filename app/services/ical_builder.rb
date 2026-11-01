@@ -117,7 +117,8 @@ class IcalBuilder
         alt = Icalendar::Values::Text.new(html, { 'fmttype' => 'text/html' })
         e.append_custom_property('x-alt-desc', alt)
       end
-      e.location = occurrence.event_location.name if occurrence.event_location
+      place = occurrence.venue_name
+      e.location = place if place.present?
       e.url = page_url if page_url.present?
       e.organizer = organizer if organizer.present?
     end

@@ -20,6 +20,12 @@ class RsvpNotifier
       RsvpMailer.occurrence_changed(rsvp, kind: kind).deliver_later
     end
 
+    def venue_changed(rsvp, previous_name:)
+      return if skip?(rsvp)
+
+      RsvpMailer.venue_changed(rsvp, previous_name: previous_name).deliver_later
+    end
+
     def login_required(email, occurrence)
       RsvpMailer.login_required(email, occurrence).deliver_later
     end
