@@ -42,11 +42,14 @@ RSpec.describe RsvpMailer, type: :mailer do
     end
 
     it 'names a permanently relocated series by its new place' do
-      event.update!(permanently_relocated: true, relocated_to: 'The annex')
+      event.update!(location: create(:location, name: "Old Room #{SecureRandom.hex(3)}"),
+                    permanently_relocated: true, relocated_to: 'The annex')
       body = described_class.venue_changed(rsvp, previous_name: 'Shop').text_part.body.decoded
 
+      expect(body).to include('Location: The annex')
       expect(body).to include('from Shop')
       expect(body).to include('to The annex')
+      expect(body).not_to include('Old Room')
       expect(described_class.venue_changed(rsvp, previous_name: 'Shop').attachments['event.ics'].body.decoded)
         .to include('The annex')
     end

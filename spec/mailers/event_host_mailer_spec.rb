@@ -36,6 +36,21 @@ RSpec.describe EventHostMailer, type: :mailer do
     end
   end
 
+  describe '#resumed' do
+    it 'keeps the RSVP note for the whole event' do
+      body = described_class.resumed(host, event).text_part.body.decoded
+
+      expect(body).to include('Open Shop is back on. Current RSVPs are still in place.')
+    end
+
+    it 'does not claim RSVPs stayed on one date that was put back' do
+      body = described_class.resumed(host, event, occurrence: occurrence).text_part.body.decoded
+
+      expect(body).to include('is back on')
+      expect(body).not_to include('still in place')
+    end
+  end
+
   describe '#rescheduled' do
     it 'shows the previous and new start' do
       previous = event.start_time - 1.hour
