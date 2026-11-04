@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [v0.30.2] - 2026-11-04
+
+### Security
+- Rails is 8.1.4.1, which picks up today's Rails security release
+- Ruby is 4.0.9, and the other gems, JavaScript packages, and GitHub Actions are on their latest versions
+- The Trivy scan action is pinned to a release instead of following its main branch
+
+### Changed
+- The Docker images install Node.js 26, the current LTS release
+
 ## [v0.30.1] - 2026-11-01
 
 ### Fixed
