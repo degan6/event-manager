@@ -122,6 +122,8 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
           format: sarif
           output: trivy-results.sarif
+          # Only report what we can act on; unfixed distro CVEs are noise until Debian ships a patch
+          ignore-unfixed: true
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4.39.3
@@ -135,3 +137,4 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
           format: table
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
