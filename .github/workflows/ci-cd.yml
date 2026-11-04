@@ -27,7 +27,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '4.0.8'
+          ruby-version: '4.0.9'
           bundler-cache: true
 
       - name: Install dependencies
@@ -76,7 +76,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '4.0.8'
+          ruby-version: '4.0.9'
           bundler-cache: true
 
       - name: Cache Node modules
@@ -165,7 +165,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '4.0.8'
+          ruby-version: '4.0.9'
           bundler-cache: true
 
       - name: Install dependencies

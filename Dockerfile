@@ -2,7 +2,7 @@
 # ========================================
 # Stage 1: Builder - Install dependencies and build assets
 # ========================================
-FROM ruby:4.0.8 AS builder
+FROM ruby:4.0.9 AS builder
 
 # Install build dependencies
 # ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
@@ -15,11 +15,11 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 24.x LTS and Yarn 1.x (Classic) via Corepack (avoids deprecated apt-key Yarn repo)
-RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+# Install Node.js 26.x LTS and Yarn 1.x (Classic) via Corepack, installed from npm since Node 25+ no longer bundles it (avoids deprecated apt-key Yarn repo)
+RUN curl -fsSL https://deb.nodesource.com/setup_26.x | bash - && \
     apt-get update -qq && apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/* && \
-    corepack enable && corepack prepare yarn@1.22.22 --activate
+    npm install -g corepack && corepack enable && corepack prepare yarn@1.22.22 --activate
 
 WORKDIR /app
 
@@ -55,7 +55,7 @@ RUN SECRET_KEY_BASE=dummy RAILS_ENV=production bundle exec rake assets:precompil
 # ========================================
 # Stage 2: Runtime - Minimal production image
 # ========================================
-FROM ruby:4.0.8-slim AS runtime
+FROM ruby:4.0.9-slim AS runtime
 
 # Updated per deployment protocol: CI passes APP_VERSION; local builds default to dev
 ARG APP_VERSION=dev

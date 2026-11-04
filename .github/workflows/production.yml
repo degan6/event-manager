@@ -117,20 +117,20 @@ jobs:
         run: docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}"
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
           format: sarif
           output: trivy-results.sarif
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4.39.1
+        uses: github/codeql-action/upload-sarif@v4.39.3
         if: always()
         with:
           sarif_file: trivy-results.sarif
 
       - name: Run Trivy vulnerability scanner (table output)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
           format: table
