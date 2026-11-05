@@ -52,6 +52,9 @@ RUN yarn build & yarn build:css & wait
 # Precompile assets for production
 RUN SECRET_KEY_BASE=dummy RAILS_ENV=production bundle exec rake assets:precompile
 
+# JS tooling is only needed to build assets; keep it out of the runtime image
+RUN rm -rf node_modules
+
 # ========================================
 # Stage 2: Runtime - Minimal production image
 # ========================================
@@ -67,6 +70,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
     imagemagick \
+    && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
