@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [v0.30.3] - 2026-11-04
+
+### Security
+- The production image installs pending Debian security updates and no longer ships the JavaScript build tooling
+- The image vulnerability scan reports only issues that have a fix, so the security alerts list what can be acted on
+- The minimatch JavaScript package is on 11.x
+
 ## [v0.30.2] - 2026-11-04
 
 ### Security
