@@ -1,0 +1,10 @@
+<% if @test_mode %>
+<p><strong>Test mode.</strong> This message was redirected to the site test address.</p>
+<% end %>
+<p>Hi <%= @host.name.presence || @host.username.presence || 'there' %>,</p>
+<p>
+  <%= @sender %> sent a message about <%= @event.title %><% if @when_label %> on <%= @when_label %><% end %>.
+</p>
+<%= simple_format(@message) %>
+<p>Reply to this email to respond to <%= mail_to @from_email %>.</p>
+<p><%= link_to 'View the event', @url %></p>

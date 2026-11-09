@@ -39,6 +39,13 @@ RSpec.describe "SiteConfig", type: :request do
         expect(response.body).to include("My Hackerspace")
       end
 
+      it "shows the default message people see after contacting hosts" do
+        get edit_site_config_path
+
+        expect(response.body).to include("Message after contacting hosts")
+        expect(response.body).to include(SiteConfig::DEFAULT_HOST_CONTACT_RESPONSE)
+      end
+
       it "shows a masked AI key when one is saved" do
         allow(OllamaService).to receive(:available_models).and_return([])
         site_config.update!(ai_key: "secret-key")
@@ -104,6 +111,14 @@ RSpec.describe "SiteConfig", type: :request do
         expect(site_config.contact_email).to eq("contact@updated.org")
         expect(site_config.contact_phone).to eq("(555) 999-8888")
         expect(site_config.footer_text).to eq("Custom footer text")
+      end
+
+      it "updates the message shown after contacting hosts" do
+        patch site_config_path, params: {
+          site_config: { host_contact_response: "Thanks. The hosts have your note." }
+        }
+
+        expect(site_config.reload.host_contact_response).to eq("Thanks. The hosts have your note.")
       end
 
       it "updates AI connection settings" do

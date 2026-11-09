@@ -210,6 +210,17 @@
           </div>
 
           <div class="mb-3">
+            <%= f.label :host_contact_response, "Message after contacting hosts", class: "form-label" %>
+            <%= f.text_area :host_contact_response,
+                  class: "form-control",
+                  rows: 3,
+                  value: (@site_config.host_contact_response.presence || SiteConfig::DEFAULT_HOST_CONTACT_RESPONSE) %>
+            <div class="form-text">
+              Shown to someone after their message is sent to an event's hosts.
+            </div>
+          </div>
+
+          <div class="mb-3">
             <div class="form-check">
               <%= f.check_box :email_test_mode_enabled, class: "form-check-input", id: "email_test_mode_enabled" %>
               <%= f.label :email_test_mode_enabled, "Email Test Mode", class: "form-check-label" %>

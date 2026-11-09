@@ -213,6 +213,8 @@
       </div>
     </section>
 
+    <%= render 'shared/contact_hosts', url: event_occurrence_host_contact_path(@occurrence) %>
+
     <% if user_signed_in? && (current_user.admin? || @event.hosted_by?(current_user)) %>
       <section class="card mb-3">
         <div class="card-body">

@@ -74,6 +74,7 @@ Rails.application.routes.draw do
 
     # Host management
     resources :event_hosts, only: %i[create update destroy]
+    resource :host_contact, only: :create
 
     resources :event_images, only: %i[create update destroy], path: 'images' do
       collection do
@@ -97,6 +98,8 @@ Rails.application.routes.draw do
         patch :check_in
       end
     end
+
+    resource :host_contact, only: :create
 
     member do
       post :postpone
