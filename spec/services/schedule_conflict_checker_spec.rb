@@ -1,7 +1,9 @@
 require 'rails_helper'
 
 RSpec.describe ScheduleConflictChecker do
-  let(:start_time) { Time.zone.parse('2026-11-07 18:00') }
+  # Keep this ahead of "now". Finished events are ignored, so a fixed date
+  # stops matching once the calendar passes it.
+  let(:start_time) { 3.weeks.from_now.change(hour: 18, min: 0, sec: 0) }
 
   before { SiteConfig.current.update!(default_conflict_buffer_minutes: 60) }
 

@@ -1,0 +1,14 @@
+<% if @test_mode %>
+TEST MODE: this message was redirected to the site test address.
+
+<% end %>
+Hi <%= @host.name.presence || @host.username.presence || 'there' %>,
+
+<%= @sender %> sent a message about <%= @event.title %><% if @when_label %> on <%= @when_label %><% end %>.
+
+<%= @message %>
+
+Reply to this email to respond to <%= @from_email %>.
+
+View the event:
+<%= @url %>

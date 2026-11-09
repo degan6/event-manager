@@ -239,6 +239,7 @@ class EventsController < ApplicationController
                                     location_id requires_mask busy conflict_buffer_minutes request_exclusive
                                     draft slack_announce social_reminders
                                     rsvp_enabled capacity waitlist_enabled waitlist_mode rsvp_closes_minutes_before
+                                    allow_host_contact
                                     reminder_7d_short reminder_1d_short reminder_7d_long reminder_1d_long
                                     sign_feed permanently_cancelled default_to_cancelled
                                     permanently_relocated relocated_to]).to_h.stringify_keys

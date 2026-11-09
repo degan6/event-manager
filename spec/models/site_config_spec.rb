@@ -58,6 +58,22 @@ RSpec.describe SiteConfig, type: :model do
     end
   end
 
+  describe '#host_contact_response_text' do
+    it 'uses a patient default when nothing is saved' do
+      config = described_class.new(organization_name: 'EventManager')
+
+      expect(config.host_contact_response_text).to eq(described_class::DEFAULT_HOST_CONTACT_RESPONSE)
+      expect(config.host_contact_response_text).to include('forwarded to the hosts')
+      expect(config.host_contact_response_text).to include('patient about a reply')
+    end
+
+    it 'uses the saved message' do
+      config = described_class.new(host_contact_response: 'The hosts have your note.')
+
+      expect(config.host_contact_response_text).to eq('The hosts have your note.')
+    end
+  end
+
   describe 'singleton pattern' do
     it 'maintains only one record with id = 1' do
       # Create via factory (uses id: 1)

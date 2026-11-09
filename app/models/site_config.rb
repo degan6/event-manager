@@ -1,5 +1,6 @@
 class SiteConfig < ApplicationRecord
   DEFAULT_AI_REMINDER_PROMPT = "Create a short, friendly reminder for {{event_title}} happening on {{event_date}} at {{event_time}} at PDX Hackerspace.".freeze
+  DEFAULT_HOST_CONTACT_RESPONSE = "Your message has been forwarded to the hosts. Please be patient about a reply.".freeze
 
   has_one_attached :favicon
   has_one_attached :banner_image
@@ -14,6 +15,7 @@ class SiteConfig < ApplicationRecord
             format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL (starting with http:// or https://)" }, allow_blank: true
   validates :ai_url,
             format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL (starting with http:// or https://)" }, allow_blank: true
+  validates :host_contact_response, length: { maximum: 2000 }, allow_blank: true
 
   # Singleton pattern - only one site config should exist with id = 1
   # Uses find_or_create_by! for atomic operation with smaller race window
@@ -32,5 +34,9 @@ class SiteConfig < ApplicationRecord
 
   def ai_reminder_prompt_with_default
     ai_reminder_prompt.presence || DEFAULT_AI_REMINDER_PROMPT
+  end
+
+  def host_contact_response_text
+    host_contact_response.presence || DEFAULT_HOST_CONTACT_RESPONSE
   end
 end

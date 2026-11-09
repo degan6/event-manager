@@ -65,6 +65,10 @@ FactoryBot.define do
       more_info_url { Faker::Internet.url }
     end
 
+    trait :contactable do
+      allow_host_contact { true }
+    end
+
     trait :rsvp do
       rsvp_enabled { true }
       capacity { 2 }

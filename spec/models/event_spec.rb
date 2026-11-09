@@ -11,6 +11,10 @@ RSpec.describe Event, type: :model do
     it { is_expected.to validate_inclusion_of(:status).in_array(%w[active postponed cancelled]) }
     it { is_expected.to validate_inclusion_of(:visibility).in_array(%w[public members private]) }
     it { is_expected.to validate_inclusion_of(:open_to).in_array(%w[public members private]) }
+
+    it 'keeps host contact off until a host opts in' do
+      expect(create(:event).reload.allow_host_contact).to be false
+    end
   end
 
   describe 'associations' do
