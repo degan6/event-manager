@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [v0.31.0] - 2026-11-09
+
+### Added
+- Hosts can let people contact them from an event (#321). The choice is on the Visibility step of the event form, between RSVPs and publishing. When it is on, the event page and each date have a contact form that emails every host. The message shown after sending can be changed in site settings
+
 ## [v0.30.3] - 2026-11-04
 
 ### Security
