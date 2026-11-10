@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- Signed-in users can follow an event or a single date. Followed dates show on the dashboard
+- Followers get an email when a followed event changes, including the description, banner, title, time, place, cancellation, or postponement. Several edits close together are one email
+- Followers get a reminder the day before each upcoming date. A date followed on its own also gets a reminder a week before. A new date further out on a recurring event does not send its own email
+- Every one of those emails has a link to stop following, and favorite emails can be turned off from the profile page
+
 ## [v0.31.0] - 2026-11-09
 
 ### Added

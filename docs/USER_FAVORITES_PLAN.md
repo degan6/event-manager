@@ -1,6 +1,6 @@
 # Plan: User Favorites
 
-Status: planned, not implemented. Target version: **0.32.0** (feature release).
+Status: implemented on `feature/user-favorites`. Target version: **0.32.0** (feature release).
 Branch: `feature/user-favorites` (off `main`)
 
 ## Goals
