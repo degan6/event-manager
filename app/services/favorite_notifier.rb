@@ -45,8 +45,10 @@ class FavoriteNotifier
     def reminder(user, favorite, occurrence, kind:)
       return if told_by_rsvp?(user, occurrence)
 
-      FavoriteMailer.reminder(user, favorite, occurrence, kind: kind).deliver_later
+      # Claim the send before enqueueing. Overlapping runs then lose the unique
+      # insert instead of both delivering a message.
       FavoriteReminderDelivery.create!(user: user, event_occurrence: occurrence, kind: kind, sent_at: Time.current)
+      FavoriteMailer.reminder(user, favorite, occurrence, kind: kind).deliver_later
     rescue ActiveRecord::RecordNotUnique
       nil
     end

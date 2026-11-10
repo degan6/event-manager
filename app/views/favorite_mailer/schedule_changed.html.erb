@@ -1,4 +1,4 @@
-<p><strong><%= @event.title %></strong> <%= schedule_change_sentence(@kind) %>.</p>
+<p><strong><%= @event.title %></strong> <%= @change_sentence %>.</p>
 <% if @previous_start.present? && @occurrence %>
   <p>It was <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>. It is now <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>.</p>
 <% elsif @occurrence&.status == 'postponed' && @occurrence.postponed_until.present? %>

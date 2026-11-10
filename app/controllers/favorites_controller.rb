@@ -5,6 +5,7 @@ class FavoritesController < ApplicationController
 
   def create
     load_target
+    load_presentation
     authorize @event, :show?
     FavoriteService.follow!(current_user, event: @event, occurrence: @occurrence)
     respond_with_toggle
@@ -16,6 +17,7 @@ class FavoritesController < ApplicationController
     favorite = current_user.favorites.find(params.expect(:id))
     @event = favorite.event
     @occurrence = favorite.event_occurrence
+    load_presentation
     favorite.destroy!
     respond_with_toggle
   end
@@ -56,6 +58,14 @@ class FavoritesController < ApplicationController
     else
       @event = Event.friendly_find(params[:event_id])
     end
+  end
+
+  def load_presentation
+    @variant = params[:variant].to_s
+    @variant = 'plain' unless %w[plain date series compact].include?(@variant)
+    return if params[:context_occurrence_id].blank?
+
+    @context_occurrence = @event.occurrences.find_by(id: params[:context_occurrence_id])
   end
 
   def respond_with_toggle

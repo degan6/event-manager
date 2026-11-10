@@ -1,4 +1,4 @@
-<%= @event.title %> <%= schedule_change_sentence(@kind) %>.
+<%= @event.title %> <%= @change_sentence %>.
 <% if @previous_start.present? %>
 The series used to start <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>.
 It now starts <%= @event.start_time.strftime('%A, %B %d, %Y at %I:%M %p') %>.

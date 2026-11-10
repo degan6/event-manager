@@ -48,6 +48,38 @@ RSpec.describe FavoriteNotifier, :mail do
     expect(favorite.reload.event_occurrence.occurs_at).to be_within(1.minute).of(start_time + 10.days)
   end
 
+  it 'keeps a date favorite when a one-time event moves to another day' do
+    favorite = create(:favorite, :for_occurrence, user: create(:user), event: event, event_occurrence: occurrence)
+    new_time = start_time + 3.days
+
+    event.update!(start_time: new_time)
+
+    expect(favorite.reload.event_occurrence).to be_present
+    expect(favorite.event_occurrence.occurs_at).to be_within(1.minute).of(new_time)
+    expect(favorite.event_occurrence.status).to eq('active')
+  end
+
+  it 'still emails someone whose date was removed by a schedule edit' do
+    series = create(:event, :weekly, user: host, start_time: start_time)
+    followed = series.occurrences.order(:occurs_at).second
+    date_follower = create(:user)
+    create(:favorite, :for_occurrence, user: date_follower, event: series, event_occurrence: followed)
+    moved = start_time + 1.day
+    rule = Event.build_schedule(moved, 'weekly', { days: [moved.wday] }).to_yaml
+
+    expect { series.update!(start_time: moved, recurrence_rule: rule) }
+      .to have_enqueued_mail(FavoriteMailer, :series_changed)
+  end
+
+  it 'does not send a second reminder after the first one is claimed' do
+    favorite = follower.favorites.find_by!(event: event, event_occurrence_id: nil)
+    described_class.reminder(follower, favorite, occurrence, kind: '1d')
+    clear_enqueued_jobs
+
+    expect { described_class.reminder(follower, favorite, occurrence, kind: '1d') }
+      .not_to have_enqueued_mail(FavoriteMailer, :reminder)
+  end
+
   it 'stays quiet while occurrence mail is silenced' do
     ScheduleNotifier.silence_occurrence_hosts do
       expect { occurrence.cancel!('Weather', host) }

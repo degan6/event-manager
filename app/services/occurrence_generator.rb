@@ -141,14 +141,23 @@ class OccurrenceGenerator
     return unless created.first.status == 'active'
 
     RsvpLifecycle.transfer!(removed.first, created.first)
+    FavoriteService.transfer!(removed.first, created.first)
   end
 
   def discard_from_schedule(occurrence)
+    remember_dropped_favorites(occurrence)
     if occurrence.cancellation_reason.blank? && occurrence.rsvps.where.not(status: 'cancelled').exists?
       reason = 'This date was removed from the schedule'
       occurrence.update_column(:cancellation_reason, reason) # rubocop:disable Rails/SkipsModelValidations
     end
     occurrence.destroy
+  end
+
+  def remember_dropped_favorites(occurrence)
+    user_ids = occurrence.favorites.pluck(:user_id)
+    return if user_ids.empty?
+
+    event.dropped_favorite_user_ids = Array(event.dropped_favorite_user_ids) | user_ids
   end
 
   def save_occurrence(occurrence)

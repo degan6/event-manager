@@ -1,7 +1,7 @@
 class FavoriteMailer < ApplicationMailer
   include CalendarAttachment
 
-  CALENDAR_KINDS = %w[rescheduled relocated reactivated resumed venue postponed].freeze
+  CALENDAR_KINDS = %w[rescheduled relocated reactivated resumed venue].freeze
 
   def reminder(user, favorite, occurrence, kind:)
     @kind = kind
@@ -11,13 +11,17 @@ class FavoriteMailer < ApplicationMailer
 
   def schedule_changed(user, favorite, occurrence, kind, details = {})
     @kind = kind
+    @change_sentence = schedule_change_sentence(kind)
     assign_change_details(details)
-    attach_occurrences_calendar([occurrence]) if CALENDAR_KINDS.include?(kind)
-    prepare(user, favorite, occurrence.event, occurrence, schedule_subject(occurrence.event, kind))
+    target = calendar_occurrence(occurrence, kind)
+    @previous_start ||= occurrence.occurs_at if kind == 'postponed' && target
+    attach_occurrences_calendar([target]) if target && (kind == 'postponed' || CALENDAR_KINDS.include?(kind))
+    prepare(user, favorite, occurrence.event, target || occurrence, schedule_subject(occurrence.event, kind))
   end
 
   def series_changed(user, favorite, event, kind, details = {})
     @kind = kind
+    @change_sentence = schedule_change_sentence(kind)
     assign_change_details(details)
     @upcoming = event.occurrences.listable_upcoming.order(:occurs_at).limit(5)
     prepare(user, favorite, event, @upcoming.first, series_subject(event, kind))
@@ -47,6 +51,13 @@ class FavoriteMailer < ApplicationMailer
   end
 
   private
+
+  def calendar_occurrence(occurrence, kind)
+    return occurrence.replacement_occurrence if kind == 'postponed'
+    return occurrence if CALENDAR_KINDS.include?(kind)
+
+    nil
+  end
 
   def assign_change_details(details)
     @previous_start = details[:previous_start]

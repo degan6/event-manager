@@ -69,6 +69,29 @@ RSpec.describe 'Favorites', type: :request do
     expect(response.body).not_to include('>Follow<')
   end
 
+  it 'updates both date-page buttons and keeps compact buttons icon-only' do
+    sign_in member
+
+    post favorites_path, params: {
+      event_id: event.id,
+      variant: 'series',
+      context_occurrence_id: occurrence.id
+    }, as: :turbo_stream
+
+    expect(response.media_type).to eq(Mime[:turbo_stream])
+    expect(response.body).to include('Following every date')
+    expect(response.body).to include(ActionView::RecordIdentifier.dom_id(occurrence, :favorite))
+
+    post favorites_path, params: {
+      event_id: event.id,
+      event_occurrence_id: occurrence.id,
+      variant: 'compact'
+    }, as: :turbo_stream
+
+    expect(response.body).to include('bi-star-fill')
+    expect(response.body).not_to include('Follow this date')
+  end
+
   it 'stops emails from the link in the message' do
     favorite = create(:favorite, user: member, event: event)
     token = favorite.generate_token_for(:unsubscribe)

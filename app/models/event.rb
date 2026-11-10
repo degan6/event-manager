@@ -37,7 +37,7 @@ class Event < ApplicationRecord
   after_update :record_favorite_content
 
   attr_accessor :current_user_for_journal, :pool_images, :exclusive_actor, :override_exclusive_conflict,
-                :exclusive_review_notification
+                :exclusive_review_notification, :dropped_favorite_user_ids
   attr_writer :request_exclusive
   attr_reader :pool_images_attached_count
 

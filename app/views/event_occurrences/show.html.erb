@@ -56,8 +56,8 @@
       <% end %>
     </header>
     <div class="d-flex flex-wrap gap-2 mb-3">
-      <%= render "favorites/toggle", event: @event, occurrence: @occurrence %>
-      <%= render "favorites/toggle", event: @event, label: "Follow every date", following_label: "Following every date" %>
+      <%= render "favorites/toggle", event: @event, occurrence: @occurrence, variant: "date" %>
+      <%= render "favorites/toggle", event: @event, variant: "series", context_occurrence: @occurrence %>
     </div>
 
     <% if @exclusive_conflicts&.any? %>

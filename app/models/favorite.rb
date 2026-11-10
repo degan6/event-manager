@@ -37,7 +37,13 @@ class Favorite < ApplicationRecord
     return none unless emails_enabled?
 
     occurrence_ids = event.occurrences.not_yet_ended.select(:id)
-    where(event_id: event.id, event_occurrence_id: nil).or(where(event_occurrence_id: occurrence_ids))
+    scope = where(event_id: event.id, event_occurrence_id: nil).or(where(event_occurrence_id: occurrence_ids))
+    dropped = Array(event.dropped_favorite_user_ids)
+    return scope if dropped.empty?
+
+    # A schedule edit can remove a date before the series email is sent. Keep
+    # the people who followed that date on this one message.
+    scope.or(where(event_id: event.id, user_id: dropped))
   end
 
   def self.emails_enabled?

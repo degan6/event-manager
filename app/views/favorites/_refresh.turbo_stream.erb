@@ -1,0 +1,12 @@
+<%= turbo_stream.replace favorite_frame_id(@event, @occurrence) do %>
+  <%= render "favorites/toggle", event: @event, occurrence: @occurrence, variant: @variant, context_occurrence: @context_occurrence %>
+<% end %>
+<% if @variant == "series" && @context_occurrence %>
+  <%= turbo_stream.replace favorite_frame_id(@event, @context_occurrence) do %>
+    <%= render "favorites/toggle", event: @event, occurrence: @context_occurrence, variant: "date" %>
+  <% end %>
+<% elsif @variant == "date" %>
+  <%= turbo_stream.replace favorite_frame_id(@event) do %>
+    <%= render "favorites/toggle", event: @event, variant: "series", context_occurrence: @occurrence %>
+  <% end %>
+<% end %>
