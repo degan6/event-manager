@@ -9,6 +9,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   has_one :postponed_from, class_name: 'EventOccurrence', foreign_key: :postponed_to_id,
                            inverse_of: :postponed_to, dependent: :nullify
   has_many :reminder_postings, dependent: :destroy
+  has_many :favorites, dependent: :destroy
   has_many :rsvps, dependent: :destroy
 
   # Slugs are stable identifiers; only generate on create.
@@ -126,6 +127,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   after_update :log_update
   after_update :propagate_rescheduled_time_to_predecessors!, if: :saved_change_to_occurs_at?
   after_update :notify_schedule_change
+  after_update :record_favorite_content
+  after_update :clear_favorite_reminders, if: :saved_change_to_occurs_at?
   after_save :log_banner_change
 
   attr_accessor :current_user_for_journal
@@ -260,6 +263,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       log_status_change('postponed', reason, user) if user
       # Hosts are emailed from the status callback. Guests move with the new date.
       RsvpLifecycle.transfer!(self, new_occurrence)
+      FavoriteService.transfer!(self, new_occurrence)
       success = true
     end
     success
@@ -344,12 +348,21 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   def notify_time_change
+    FavoriteReminderDelivery.clear_for(self)
     RsvpLifecycle.notify_changed!(self, 'rescheduled')
     ScheduleNotifier.occurrence_rescheduled(
       self,
       previous_start: saved_change_to_occurs_at&.first || occurs_at,
       previous_duration: previous_duration_for_notice
     )
+  end
+
+  def record_favorite_content
+    FavoriteContent.record_occurrence(self)
+  end
+
+  def clear_favorite_reminders
+    FavoriteReminderDelivery.clear_for(self)
   end
 
   def previous_duration_for_notice

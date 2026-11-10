@@ -114,6 +114,7 @@ class OccurrenceGenerator
     return if previous.utc == canonical_time.utc
 
     occurrence.update_column(:occurs_at, canonical_time) # rubocop:disable Rails/SkipsModelValidations
+    FavoriteReminderDelivery.clear_for(occurrence)
     occurrence.reload
     occurrence.propagate_rescheduled_time_to_predecessors!
     # update_column skips the occurrence callback that normally sends these.

@@ -87,6 +87,7 @@
                   </div>
                 </div>
               <% end %>
+              <%= render "favorites/toggle", event: occurrence.event, occurrence: occurrence, compact: true %>
             <% end %>
           </div>
         <% end %>

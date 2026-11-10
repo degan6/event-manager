@@ -1,0 +1,3 @@
+<%= turbo_stream.replace favorite_frame_id(@event, @occurrence) do %>
+  <%= render "favorites/toggle", event: @event, occurrence: @occurrence %>
+<% end %>

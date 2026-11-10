@@ -36,6 +36,18 @@
     cron: '30 4 * * *'  # Daily at 4:30 AM
     class: RsvpCleanupJob
     description: "Expire unconfirmed RSVPs, record no-shows, and anonymize guests"
+  favorite_reminders:
+    cron: '15 * * * *'  # Hourly at :15
+    class: FavoriteReminderJob
+    description: "Email reminders for favorited events and dates"
+  favorite_change_digest:
+    cron: '*/10 * * * *'  # Every 10 minutes
+    class: FavoriteChangeDigestJob
+    description: "Email batched description, banner, and title changes to followers"
+  favorite_cleanup:
+    cron: '45 4 * * *'  # Daily at 4:45 AM
+    class: FavoriteCleanupJob
+    description: "Delete old favorite change records and reminder logs"
   refresh_social_credentials:
     cron: '0 3 * * *'  # Daily at 3 AM
     class: RefreshSocialCredentialsJob

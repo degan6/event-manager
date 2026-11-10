@@ -1,0 +1,7 @@
+This is your <%= @kind == '7d' ? 'one week' : 'one day' %> reminder for <%= @event.title %>.
+
+<%= render "when", event: @event, occurrence: @occurrence %>
+<% if @occurrence&.rsvp_open? %>
+RSVP: <%= event_occurrence_url(@occurrence) %>
+<% end %>
+<%= render "footer" %>

@@ -18,7 +18,7 @@ class ApplicationController < ActionController::Base
 
   def configure_permitted_parameters
     devise_parameter_sanitizer.permit(:sign_up, keys: [:name])
-    devise_parameter_sanitizer.permit(:account_update, keys: %i[name email_reminders_enabled])
+    devise_parameter_sanitizer.permit(:account_update, keys: %i[name email_reminders_enabled favorite_emails_enabled])
   end
 
   private

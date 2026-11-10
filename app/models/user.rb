@@ -10,6 +10,7 @@ class User < ApplicationRecord
   has_many :hosted_events, through: :event_hosts, source: :event # Events this user co-hosts
   has_many :event_journals, dependent: :nullify # Audit logs persist after user deletion
   has_many :rsvps, dependent: :nullify
+  has_many :favorites, dependent: :destroy
 
   validates :username, length: { maximum: 100 }, allow_blank: true
 

@@ -1,0 +1,19 @@
+<p><strong><%= @event.title %></strong> <%= schedule_change_sentence(@kind) %>.</p>
+<% if @previous_start.present? %>
+  <p>The series used to start <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>. It now starts <%= @event.start_time.strftime('%A, %B %d, %Y at %I:%M %p') %>.</p>
+<% end %>
+<% if @previous_venue.present? %>
+  <p>It was at <%= @previous_venue %>. It is now at <%= @event.relocated_to.presence || @event.location&.name || 'a new location' %>.</p>
+<% end %>
+<% if @reason.present? %>
+  <p>Reason: <%= @reason %></p>
+<% end %>
+<% if @upcoming&.any? %>
+  <p>Next dates:</p>
+  <ul>
+    <% @upcoming.each do |occurrence| %>
+      <li><%= link_to occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p'), event_occurrence_url(occurrence) %></li>
+    <% end %>
+  </ul>
+<% end %>
+<%= render "footer" %>

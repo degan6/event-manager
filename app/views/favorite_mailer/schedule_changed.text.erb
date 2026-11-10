@@ -1,0 +1,17 @@
+<%= @event.title %> <%= schedule_change_sentence(@kind) %>.
+<% if @previous_start.present? && @occurrence %>
+It was <%= @previous_start.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+It is now <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+<% elsif @occurrence&.status == 'postponed' && @occurrence.postponed_until.present? %>
+It was <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+It is now <%= @occurrence.postponed_until.strftime('%A, %B %d, %Y at %I:%M %p') %>.
+<% else %>
+<%= render "when", event: @event, occurrence: @occurrence %>
+<% end %>
+<% if @previous_venue.present? %>
+It was at <%= @previous_venue %>. It is now at <%= @occurrence&.venue_name || 'a new location' %>.
+<% end %>
+<% if @reason.present? %>
+Reason: <%= @reason %>
+<% end %>
+<%= render "footer" %>

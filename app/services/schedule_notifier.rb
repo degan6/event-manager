@@ -29,6 +29,7 @@ class ScheduleNotifier
       each_host(event) do |host|
         EventHostMailer.cancelled(host, event, reason: reason).deliver_later
       end
+      FavoriteNotifier.series_changed(event, 'cancelled', actor: event.current_user_for_journal, reason: reason)
     end
 
     def event_postponed(event)
@@ -37,6 +38,8 @@ class ScheduleNotifier
                                                reason: event.cancellation_reason).deliver_later
       end
       each_open_occurrence(event) { |occurrence| RsvpLifecycle.notify_changed!(occurrence, 'postponed') }
+      FavoriteNotifier.series_changed(event, 'postponed', actor: event.current_user_for_journal,
+                                                          reason: event.cancellation_reason)
     end
 
     def event_rescheduled(event, previous_start:, previous_duration:)
@@ -44,6 +47,12 @@ class ScheduleNotifier
         EventHostMailer.rescheduled(host, event, previous_start: previous_start,
                                                  previous_duration: previous_duration).deliver_later
       end
+      FavoriteNotifier.series_changed(
+        event, 'rescheduled',
+        actor: event.current_user_for_journal,
+        previous_start: previous_start,
+        previous_duration: previous_duration
+      )
       return if event.saved_change_to_start_time?
       return unless event.saved_change_to_duration?
 
@@ -59,6 +68,8 @@ class ScheduleNotifier
       each_host(event) do |host|
         EventHostMailer.cancelled(host, event, occurrence: occurrence, reason: occurrence.cancellation_reason).deliver_later
       end
+      FavoriteNotifier.date_changed(occurrence, 'cancelled', actor: occurrence.current_user_for_journal,
+                                                             reason: occurrence.cancellation_reason)
     end
 
     def occurrence_postponed(occurrence)
@@ -69,6 +80,8 @@ class ScheduleNotifier
         EventHostMailer.postponed(host, event, until_time: occurrence.postponed_until, occurrence: occurrence,
                                                reason: occurrence.cancellation_reason).deliver_later
       end
+      FavoriteNotifier.date_changed(occurrence, 'postponed', actor: occurrence.current_user_for_journal,
+                                                             reason: occurrence.cancellation_reason)
     end
 
     def occurrence_rescheduled(occurrence, previous_start:, previous_duration: nil)
@@ -79,6 +92,9 @@ class ScheduleNotifier
         EventHostMailer.rescheduled(host, event, occurrence: occurrence, previous_start: previous_start,
                                                  previous_duration: previous_duration).deliver_later
       end
+      FavoriteNotifier.date_changed(occurrence, 'rescheduled', actor: occurrence.current_user_for_journal,
+                                                               previous_start: previous_start,
+                                                               previous_duration: previous_duration)
     end
 
     def occurrence_relocated(occurrence)
@@ -89,6 +105,8 @@ class ScheduleNotifier
         EventHostMailer.relocated(host, event, occurrence: occurrence, location: occurrence.relocated_to,
                                                reason: occurrence.cancellation_reason).deliver_later
       end
+      FavoriteNotifier.date_changed(occurrence, 'relocated', actor: occurrence.current_user_for_journal,
+                                                             reason: occurrence.cancellation_reason)
     end
 
     def event_reactivated(event)
@@ -98,6 +116,7 @@ class ScheduleNotifier
       event.occurrences.not_yet_ended.where(status: EventOccurrence::LISTABLE_STATUSES).find_each do |occurrence|
         notify_previous_rsvps(occurrence)
       end
+      FavoriteNotifier.series_changed(event, 'reactivated', actor: event.current_user_for_journal)
     end
 
     def occurrence_reactivated(occurrence)
@@ -108,11 +127,13 @@ class ScheduleNotifier
         end
       end
       notify_previous_rsvps(occurrence)
+      FavoriteNotifier.date_changed(occurrence, 'reactivated', actor: occurrence.current_user_for_journal)
     end
 
     def event_resumed(event)
       each_host(event) { |host| EventHostMailer.resumed(host, event).deliver_later }
       each_open_occurrence(event) { |occurrence| notify_current_rsvps(occurrence, 'resumed') }
+      FavoriteNotifier.series_changed(event, 'resumed', actor: event.current_user_for_journal)
     end
 
     # A postponed date already moved its RSVPs onto a new date. Putting the old
@@ -124,6 +145,7 @@ class ScheduleNotifier
         each_host(event) { |host| EventHostMailer.resumed(host, event, occurrence: occurrence).deliver_later }
       end
       notify_current_rsvps(occurrence, 'resumed')
+      FavoriteNotifier.date_changed(occurrence, 'resumed', actor: occurrence.current_user_for_journal)
     end
 
     def event_venue_changed(event, previous_name:, current_name:)
@@ -132,6 +154,8 @@ class ScheduleNotifier
       end
       inheriting = event.occurrences.not_yet_ended.where(location_id: nil)
       inheriting.find_each { |occurrence| notify_venue(occurrence, previous_name) }
+      FavoriteNotifier.series_changed(event, 'venue', actor: event.current_user_for_journal,
+                                                      previous_venue: previous_name)
     end
 
     def occurrence_venue_changed(occurrence, previous_name:, current_name:)
@@ -143,6 +167,8 @@ class ScheduleNotifier
                                                    occurrence: occurrence).deliver_later
       end
       notify_venue(occurrence, previous_name)
+      FavoriteNotifier.date_changed(occurrence, 'venue', actor: occurrence.current_user_for_journal,
+                                                         previous_venue: previous_name)
     end
 
     private

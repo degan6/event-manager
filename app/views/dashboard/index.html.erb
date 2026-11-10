@@ -49,6 +49,67 @@
       </div>
     </section>
   <% end %>
+  <% if @my_favorites.any? || @favorite_upcoming.any? %>
+    <section class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h2 class="h5 mb-0"><i class="bi bi-star-fill text-warning" aria-hidden="true"></i> My Favorites</h2>
+        </div>
+        <% if @favorite_upcoming.any? %>
+          <ul class="list-group list-group-flush">
+            <% @favorite_upcoming.each do |occurrence, source| %>
+              <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span>
+                  <%= link_to occurrence.event.title, event_occurrence_path(occurrence) %>
+                  <span class="text-muted"><%= occurrence.occurs_at.strftime('%a, %b %d, %Y %I:%M %p') %></span>
+                  <span class="badge text-bg-light"><%= source == :event ? "Following event" : "Following this date" %></span>
+                  <% if @favorite_rsvp_ids.include?(occurrence.id) %>
+                    <span class="badge text-bg-primary">RSVP</span>
+                  <% end %>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <ul class="list-group list-group-flush">
+          <% @my_favorites.each do |favorite| %>
+            <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span>
+                <%= link_to favorite.event.title, event_path(favorite.event) %>
+                <% if favorite.occurrence_favorite? && favorite.event_occurrence %>
+                  <span class="text-muted">· <%= favorite.event_occurrence.occurs_at.strftime('%b %d, %Y') %></span>
+                <% elsif favorite.event_favorite? %>
+                  <% next_date = favorite.event.occurrences.listable_upcoming.order(:occurs_at).first %>
+                  <% if next_date %>
+                    <span class="text-muted">· next <%= next_date.occurs_at.strftime('%b %d, %Y') %></span>
+                  <% end %>
+                <% end %>
+              </span>
+              <span class="d-flex gap-2">
+                <%= button_to reminders_favorite_path(favorite), method: :patch, class: "btn btn-sm btn-outline-secondary" do %>
+                  <%= favorite.reminders_enabled? ? "Reminders on" : "Reminders off" %>
+                <% end %>
+                <%= button_to favorite_path(favorite), method: :delete, class: "btn btn-sm btn-outline-warning" do %>
+                  Unfollow
+                <% end %>
+              </span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </section>
+  <% elsif favorites_enabled? %>
+    <section class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body text-center text-muted">
+          <i class="bi bi-star display-4 mb-3 d-block" aria-hidden="true"></i>
+          <p class="mb-2">Follow an event to see it here and get email when it changes.</p>
+          <%= link_to "Browse events", events_path, class: "btn btn-outline-primary" %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
   <%# Manage Events Section %>
   <section class="col-12" aria-labelledby="manage-events-heading">
     <div class="card shadow-sm">
