@@ -65,6 +65,9 @@ class SiteConfigsController < ApplicationController
                       rsvp_offer_hours
                       rsvp_last_call_hours
                       rsvp_guest_retention_days
+                      favorites_enabled
+                      favorite_reminder_hours
+                      favorite_change_quiet_minutes
                       email_test_mode_enabled
                       email_test_mode_address
                       ai_url

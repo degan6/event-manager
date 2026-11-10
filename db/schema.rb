@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_10_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -189,12 +189,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.index ["title"], name: "index_events_on_title_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_events_on_user_id"
     t.index ["visibility"], name: "index_events_on_visibility"
-    t.check_constraint "exclusive_status::text = ANY (ARRAY['none'::character varying, 'pending'::character varying, 'approved'::character varying, 'denied'::character varying]::text[])", name: "events_exclusive_status_check"
+    t.check_constraint "exclusive_status::text = ANY (ARRAY['none'::character varying::text, 'pending'::character varying::text, 'approved'::character varying::text, 'denied'::character varying::text])", name: "events_exclusive_status_check"
     t.check_constraint "open_to::text = ANY (ARRAY['public'::character varying::text, 'members'::character varying::text, 'private'::character varying::text])", name: "events_open_to_check"
     t.check_constraint "recurrence_type::text = ANY (ARRAY['once'::character varying::text, 'weekly'::character varying::text, 'monthly'::character varying::text, 'custom'::character varying::text])", name: "events_recurrence_type_check"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'postponed'::character varying::text, 'cancelled'::character varying::text])", name: "events_status_check"
     t.check_constraint "visibility::text = ANY (ARRAY['public'::character varying::text, 'members'::character varying::text, 'private'::character varying::text])", name: "events_visibility_check"
     t.check_constraint "waitlist_mode::text = ANY (ARRAY['first_come'::character varying::text, 'sequential'::character varying::text])", name: "events_waitlist_mode_check"
+  end
+
+  create_table "favorite_changes", force: :cascade do |t|
+    t.bigint "event_id", null: false
+    t.bigint "event_occurrence_id"
+    t.string "kind", null: false
+    t.bigint "actor_id"
+    t.datetime "delivered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_favorite_changes_on_actor_id"
+    t.index ["event_id", "delivered_at"], name: "index_favorite_changes_on_event_id_and_delivered_at"
+    t.index ["event_id"], name: "index_favorite_changes_on_event_id"
+    t.index ["event_occurrence_id"], name: "index_favorite_changes_on_event_occurrence_id"
+    t.check_constraint "kind::text = ANY (ARRAY['description'::character varying, 'banner'::character varying, 'title'::character varying, 'details'::character varying]::text[])", name: "favorite_changes_kind_check"
+  end
+
+  create_table "favorite_reminder_deliveries", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "event_occurrence_id", null: false
+    t.string "kind", null: false
+    t.datetime "sent_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_occurrence_id"], name: "index_favorite_reminder_deliveries_on_event_occurrence_id"
+    t.index ["user_id", "event_occurrence_id", "kind"], name: "index_favorite_reminders_on_user_occurrence_and_kind", unique: true
+    t.index ["user_id"], name: "index_favorite_reminder_deliveries_on_user_id"
+    t.check_constraint "kind::text = ANY (ARRAY['7d'::character varying, '1d'::character varying]::text[])", name: "favorite_reminder_deliveries_kind_check"
+  end
+
+  create_table "favorites", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "event_id", null: false
+    t.bigint "event_occurrence_id"
+    t.boolean "reminders_enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id"], name: "index_favorites_on_event_id"
+    t.index ["event_occurrence_id"], name: "index_favorites_on_event_occurrence_id"
+    t.index ["user_id", "event_id"], name: "index_favorites_on_user_and_event", unique: true, where: "(event_occurrence_id IS NULL)"
+    t.index ["user_id", "event_occurrence_id"], name: "index_favorites_on_user_and_occurrence", unique: true, where: "(event_occurrence_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_favorites_on_user_id"
   end
 
   create_table "locations", force: :cascade do |t|
@@ -296,6 +338,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.integer "rsvp_guest_retention_days", default: 30, null: false
     t.integer "default_conflict_buffer_minutes", default: 60, null: false
     t.text "host_contact_response"
+    t.boolean "favorites_enabled", default: true, null: false
+    t.integer "favorite_reminder_hours", default: 24, null: false
+    t.integer "favorite_change_quiet_minutes", default: 30, null: false
     t.check_constraint "id = 1", name: "site_configs_singleton"
   end
 
@@ -325,6 +370,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.string "uid"
     t.datetime "updated_at", null: false
     t.string "username"
+    t.boolean "favorite_emails_enabled", default: true, null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "((provider IS NOT NULL) AND (uid IS NOT NULL))"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -349,6 +395,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   add_foreign_key "events", "users"
   add_foreign_key "events", "users", column: "exclusive_requested_by_id", on_delete: :nullify
   add_foreign_key "events", "users", column: "exclusive_reviewed_by_id", on_delete: :nullify
+  add_foreign_key "favorite_changes", "event_occurrences"
+  add_foreign_key "favorite_changes", "events"
+  add_foreign_key "favorite_changes", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "favorite_reminder_deliveries", "event_occurrences"
+  add_foreign_key "favorite_reminder_deliveries", "users"
+  add_foreign_key "favorites", "event_occurrences"
+  add_foreign_key "favorites", "events"
+  add_foreign_key "favorites", "users"
   add_foreign_key "reminder_postings", "event_occurrences"
   add_foreign_key "reminder_postings", "events"
   add_foreign_key "reminder_postings", "users", column: "deleted_by_id"

@@ -26,5 +26,11 @@ class DashboardController < ApplicationController
                     .includes(event_occurrence: :event)
                     .order('event_occurrences.occurs_at')
     @rsvp_counts = Rsvp.confirmed.where(event_occurrence_id: @upcoming_occurrences.map(&:id)).group(:event_occurrence_id).count
+
+    @my_favorites = current_user.favorites.includes(:event, :event_occurrence).select do |favorite|
+      favorite.event && policy(favorite.event).show?
+    end
+    @favorite_upcoming = Favorite.upcoming_for(current_user)
+    @favorite_rsvp_ids = Rsvp.active.where(user: current_user, event_occurrence_id: @favorite_upcoming.map(&:first).map(&:id)).pluck(:event_occurrence_id)
   end
 end

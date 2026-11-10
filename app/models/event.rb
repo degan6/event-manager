@@ -12,6 +12,7 @@ class Event < ApplicationRecord
   has_many :event_journals, dependent: :nullify
   has_many :reminder_postings, dependent: :destroy
   has_many :event_images, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :event
+  has_many :favorites, dependent: :destroy
   belongs_to :fixed_event_image, class_name: 'EventImage', optional: true
 
   before_validation :apply_exclusive_request
@@ -33,9 +34,10 @@ class Event < ApplicationRecord
   after_update :notify_status_change
   after_update :notify_schedule_edit
   after_update :notify_venue_change
+  after_update :record_favorite_content
 
   attr_accessor :current_user_for_journal, :pool_images, :exclusive_actor, :override_exclusive_conflict,
-                :exclusive_review_notification
+                :exclusive_review_notification, :dropped_favorite_user_ids
   attr_writer :request_exclusive
   attr_reader :pool_images_attached_count
 
@@ -229,7 +231,9 @@ class Event < ApplicationRecord
   # Generate future occurrences based on recurrence rules
   # Delegates to OccurrenceGenerator service
   def generate_occurrences(limit = nil)
+    had_upcoming = occurrences.listable_upcoming.exists?
     OccurrenceGenerator.new(self).generate(limit: limit)
+    FavoriteNotifier.consider_new_date(self, had_upcoming:)
   end
 
   # Find existing occurrence by date (ignoring time) or create new one
@@ -293,7 +297,9 @@ class Event < ApplicationRecord
   # Regenerate occurrences (useful after recurrence rule changes)
   # Delegates to OccurrenceGenerator service
   def regenerate_future_occurrences!
+    had_upcoming = occurrences.listable_upcoming.exists?
     OccurrenceGenerator.new(self).regenerate_future!
+    FavoriteNotifier.consider_new_date(self, had_upcoming:)
   end
 
   # Update an occurrence's time if it doesn't match the scheduled time
@@ -625,6 +631,10 @@ class Event < ApplicationRecord
     return if saved_change_to_status? && %w[cancelled postponed].include?(status)
 
     ScheduleNotifier.event_venue_changed(self, previous_name: previous_venue_name, current_name: current_venue_name)
+  end
+
+  def record_favorite_content
+    FavoriteContent.record_event(self)
   end
 
   def venue_changed?

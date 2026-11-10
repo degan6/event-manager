@@ -55,6 +55,17 @@ Rails.application.routes.draw do
   # Dashboard for logged-in users
   get 'dashboard', to: 'dashboard#index', as: 'dashboard'
 
+  resources :favorites, only: %i[create destroy] do
+    member do
+      patch :reminders
+    end
+    collection do
+      post :login
+    end
+  end
+  get 'favorites/unsubscribe/:token', to: 'favorites#unsubscribe', as: :unsubscribe_favorite
+  post 'favorites/unsubscribe/:token', to: 'favorites#unsubscribe'
+
   # Events routes
   get 'events/rss', to: 'event_feeds#rss', as: 'events_rss', defaults: { format: 'rss' }
   get 'events/eink', to: 'event_feeds#eink', as: 'events_eink', defaults: { format: 'json' }

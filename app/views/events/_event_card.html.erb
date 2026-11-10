@@ -33,6 +33,7 @@
           </span>
         <% end %>
         <%= scheduling_badges(event) %>
+        <%= render "favorites/toggle", event: event, compact: true %>
       </div>
     </div>
     

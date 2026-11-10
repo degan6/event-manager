@@ -1,0 +1,14 @@
+<% if occurrence %>
+  <p>
+    <strong><%= occurrence.occurs_at.strftime('%A, %B %-d, %Y at %I:%M %p') %></strong>
+    <% if occurrence.venue_name.present? %>
+      at <%= occurrence.venue_name %>
+    <% end %>
+  </p>
+  <% if occurrence.banner.attached? %>
+    <p><%= image_tag rails_blob_url(occurrence.banner), alt: event.title, style: "max-width: 480px; height: auto;" %></p>
+  <% end %>
+  <% if occurrence.description.present? %>
+    <p><%= truncate(strip_tags(occurrence.description), length: 500) %></p>
+  <% end %>
+<% end %>

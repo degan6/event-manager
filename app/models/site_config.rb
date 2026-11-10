@@ -9,6 +9,8 @@ class SiteConfig < ApplicationRecord
   validates :rsvp_offer_hours, :rsvp_last_call_hours, :rsvp_guest_retention_days,
             numericality: { only_integer: true, greater_than: 0 }
   validates :default_conflict_buffer_minutes, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :favorite_reminder_hours, numericality: { only_integer: true, greater_than: 0 }
+  validates :favorite_change_quiet_minutes, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :contact_email, format: { with: URI::MailTo::EMAIL_REGEXP, message: "must be a valid email" },
                             allow_blank: true
   validates :website_url,

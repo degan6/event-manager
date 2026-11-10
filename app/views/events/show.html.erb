@@ -49,6 +49,7 @@
         <%= scheduling_badges(@event, extra_class: 'fs-6') %>
       </div>
     </header>
+    <div class="mb-3"><%= render "favorites/toggle", event: @event %></div>
 
     <% if policy(@event).update? %>
       <% if @event.exclusive_approved? %>

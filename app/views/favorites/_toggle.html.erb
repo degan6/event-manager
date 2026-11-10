@@ -1,0 +1,40 @@
+<% occurrence = local_assigns[:occurrence] %>
+<% context_occurrence = local_assigns[:context_occurrence] %>
+<% variant = favorite_variant(occurrence, variant: local_assigns[:variant], compact: local_assigns[:compact]) %>
+<% compact = variant == "compact" %>
+<% follow_label, following_label = favorite_labels(variant) %>
+<% if favorites_enabled? %>
+  <%= turbo_frame_tag favorite_frame_id(event, occurrence), class: "d-inline-block" do %>
+    <% favorite = current_favorite(event: event, occurrence: occurrence) %>
+    <% if user_signed_in? && occurrence && favorite.nil? && following_whole_event?(event) %>
+      <span class="badge text-bg-warning"><i class="bi bi-star-fill" aria-hidden="true"></i> Following every date</span>
+    <% elsif user_signed_in? && favorite %>
+      <%= button_to favorite_path(favorite), method: :delete,
+            params: favorite_display_params(variant: variant, context_occurrence: context_occurrence),
+            class: "btn btn-sm btn-outline-warning #{'px-2' if compact}",
+            title: "Stop following",
+            aria: { label: "Stop following #{event.title}" } do %>
+        <i class="bi bi-star-fill" aria-hidden="true"></i>
+        <% unless compact %><%= following_label %><% end %>
+      <% end %>
+    <% elsif user_signed_in? %>
+      <%= button_to favorites_path,
+            params: favorite_form_params(event: event, occurrence: occurrence, variant: variant, context_occurrence: context_occurrence),
+            class: "btn btn-sm btn-outline-secondary #{'px-2' if compact}",
+            title: follow_label,
+            aria: { label: "#{follow_label} #{event.title}" } do %>
+        <i class="bi bi-star" aria-hidden="true"></i>
+        <% unless compact %><%= follow_label %><% end %>
+      <% end %>
+    <% else %>
+      <%= button_to login_favorites_path, method: :post,
+            params: { return_to: request.fullpath },
+            class: "btn btn-sm btn-outline-secondary #{'px-2' if compact}",
+            title: "Log in to follow",
+            aria: { label: "Log in to follow #{event.title}" } do %>
+        <i class="bi bi-star" aria-hidden="true"></i>
+        <% unless compact %>Log in to follow<% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

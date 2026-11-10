@@ -1,0 +1,5 @@
+<% if occurrence %>
+<%= occurrence.occurs_at.strftime('%A, %B %-d, %Y at %I:%M %p') %><% if occurrence.venue_name.present? %> at <%= occurrence.venue_name %><% end %>
+
+<%= truncate(strip_tags(occurrence.description.to_s), length: 500) %>
+<% end %>

@@ -1,0 +1,7 @@
+A new date was added for <%= @event.title %>.
+
+<%= render "when", event: @event, occurrence: @occurrence %>
+<% if @occurrence&.rsvp_open? %>
+RSVP: <%= event_occurrence_url(@occurrence) %>
+<% end %>
+<%= render "footer" %>

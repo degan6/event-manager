@@ -210,6 +210,24 @@
           </div>
 
           <div class="mb-3">
+            <div class="form-check">
+              <%= f.check_box :favorites_enabled, class: "form-check-input" %>
+              <%= f.label :favorites_enabled, "Enable following events", class: "form-check-label" %>
+              <div class="form-text">When enabled, signed-in users can follow events and dates and get email about changes and upcoming dates.</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <%= f.label :favorite_reminder_hours, "Hours before a followed date to send the reminder", class: "form-label" %>
+              <%= f.number_field :favorite_reminder_hours, class: "form-control", min: 1 %>
+            </div>
+            <div class="col-md-6 mb-3">
+              <%= f.label :favorite_change_quiet_minutes, "Minutes to wait before emailing a description or banner change", class: "form-label" %>
+              <%= f.number_field :favorite_change_quiet_minutes, class: "form-control", min: 0 %>
+            </div>
+          </div>
+
+          <div class="mb-3">
             <%= f.label :host_contact_response, "Message after contacting hosts", class: "form-label" %>
             <%= f.text_area :host_contact_response,
                   class: "form-control",
