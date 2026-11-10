@@ -69,7 +69,7 @@ RSpec.describe 'Favorites', type: :request do
     expect(response.body).not_to include('>Follow<')
   end
 
-  it 'updates both date-page buttons and keeps compact buttons icon-only' do
+  it 'updates both date-page buttons when following every date' do
     sign_in member
 
     post favorites_path, params: {
@@ -81,6 +81,10 @@ RSpec.describe 'Favorites', type: :request do
     expect(response.media_type).to eq(Mime[:turbo_stream])
     expect(response.body).to include('Following every date')
     expect(response.body).to include(ActionView::RecordIdentifier.dom_id(occurrence, :favorite))
+  end
+
+  it 'keeps compact follow buttons icon-only' do
+    sign_in member
 
     post favorites_path, params: {
       event_id: event.id,

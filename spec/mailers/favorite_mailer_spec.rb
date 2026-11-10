@@ -11,23 +11,26 @@ RSpec.describe FavoriteMailer, type: :mailer do
   describe '#reminder' do
     let(:mail) { described_class.reminder(follower, favorite, occurrence, kind: '1d') }
 
-    it 'attaches the new time when a date is postponed' do
-    new_time = occurrence.occurs_at + 10.days
-    occurrence.postpone!(new_time, 'Room', event.user)
-    mail = described_class.schedule_changed(follower, favorite, occurrence.reload, 'postponed')
-    ics = mail.attachments['event.ics'].body.decoded
-
-    expect(ics).to include(new_time.utc.strftime('%Y%m%dT%H%M%SZ'))
-    expect(ics).not_to include(occurrence.occurs_at.utc.strftime('%Y%m%dT%H%M%SZ'))
-  end
-
-  it 'includes the date, a calendar file, and a way to stop following' do
+    it 'includes the date, a calendar file, and a way to stop following' do
       expect(mail.to).to eq(['follower@example.com'])
       expect(mail.subject).to include('Open House')
       expect(mail.body.encoded).to include('Bring a project')
       expect(mail.body.encoded).to include('Stop following')
       expect(mail['List-Unsubscribe'].value).to include('unsubscribe')
       expect(mail.attachments.map(&:filename)).to include('event.ics')
+    end
+  end
+
+  describe '#schedule_changed' do
+    it 'attaches the new time when a date is postponed' do
+      previous_time = occurrence.occurs_at
+      new_time = previous_time + 10.days
+      occurrence.postpone!(new_time, 'Room', event.user)
+      mail = described_class.schedule_changed(follower, favorite, occurrence.reload, 'postponed')
+      ics = mail.attachments['event.ics'].body.decoded
+
+      expect(ics).to include(new_time.utc.strftime('%Y%m%dT%H%M%SZ'))
+      expect(ics).not_to include(previous_time.utc.strftime('%Y%m%dT%H%M%SZ'))
     end
   end
 end
