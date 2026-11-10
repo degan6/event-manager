@@ -53,7 +53,9 @@ Schedule edits that regenerate dates already run inside `ScheduleNotifier.silenc
 
 ### Reminders
 
-- One reminder per date, sent the day before (default 24 hours, as a site setting).
+- Every followed date gets a reminder the day before (default 24 hours, as a site setting).
+- A date followed on its own (an occurrence favorite) also gets a heads-up 7 days before. Event followers don't, because on a weekly event it would arrive right after the previous day-before reminder. If the date is added less than 7 days out, the heads-up is skipped and only the day-before reminder is sent.
+- Reminders are on by default for every favorite, and the user can turn them off for each one.
 - Only for dates that are `active` or `relocated`, on published events that are `active`.
 - If the user has an active RSVP for that date, skip the favorite reminder. `RsvpReminderJob` already reminds them.
 - A weekly event therefore means one email a week, the day before. That's the "the one next Thursday is coming up" case.
@@ -129,9 +131,10 @@ Followers are looked up when the email is sent, not when the change is recorded.
 |-----------------------|------------------------------------|
 | `user_id`             | FK, not null                       |
 | `event_occurrence_id` | FK, not null                       |
+| `kind`                | `7d` or `1d` (check constraint)    |
 | `sent_at`             | datetime, not null                 |
 
-Unique on `(user_id, event_occurrence_id)`. When a date's time changes, its delivery rows are deleted so the reminder goes out again for the new time.
+Unique on `(user_id, event_occurrence_id, kind)`. When a date's time changes, its delivery rows are deleted so the reminder goes out again for the new time.
 
 ### Migration: `users`
 
@@ -159,7 +162,7 @@ All emails go through `EmailTestMode.recipient_for`, like the RSVP mailers.
 
 | Email              | When                                                     | Contents                                              |
 |--------------------|----------------------------------------------------------|-------------------------------------------------------|
-| `reminder`         | The day before a followed date                           | Date, time, venue, banner, description, `.ics`, RSVP link if open |
+| `reminder`         | The day before a followed date, and 7 days before a date followed on its own | Date, time, venue, banner, description, `.ics`, RSVP link if open |
 | `schedule_changed` | A date is cancelled, postponed, retimed, relocated, or reactivated | What changed, old and new values, link          |
 | `series_changed`   | The series is cancelled, postponed, resumed, or its schedule is edited | Summary and the next few dates             |
 | `content_changed`  | Batched description, banner, title, or link changes      | Current description and banner, which parts changed  |
@@ -171,7 +174,7 @@ Each email has the "Stop following" link and a link to email preferences.
 
 The schedules go in `config/sidekiq.yml`.
 
-- `FavoriteReminderJob`, hourly. Sends a reminder for each followed date within `favorite_reminder_hours` that has no delivery row.
+- `FavoriteReminderJob`, hourly. Sends the day-before reminder for each followed date within `favorite_reminder_hours`, and the 7-day heads-up for occurrence favorites within 7 days, when there's no delivery row of that kind. The day-before reminder takes priority, so a date added 2 days out gets only that one.
 - `FavoriteChangeDigestJob`, every 10 minutes. Groups undelivered `favorite_changes` by event, sends once the newest change is older than the quiet period, and marks them delivered.
 - A daily cleanup in an existing job (or `FavoriteCleanupJob`) deletes delivered `favorite_changes` and delivery rows older than 90 days.
 
@@ -217,8 +220,8 @@ The schedules go in `config/sidekiq.yml`.
 7. **New dates**: the "no upcoming, now has one" check after generation, plus tests for the rolling-window case (no email) and the rescheduled one-time event (email).
 8. **Unsubscribe and polish**: signed stop-following links, `List-Unsubscribe`, profile and site config settings, a docs update, a CHANGELOG entry, and the version bump to 0.32.0.
 
-## Open questions
+## Decisions
 
-- Should a one-time event that is still upcoming send an email when a second date is added? Under the rule above it doesn't. The schedule-edit email covers it, and the reminder follows later.
-- Should a single-date favorite also get a 7-day heads-up, in addition to the day-before reminder? The plan sends only the day-before reminder.
-- Should event favorites send reminders by default, or should followers opt in? A weekly event means one email a week.
+- A one-time event that is still upcoming doesn't send a new-date email when a second date is added. The schedule-edit email covers it, and the reminders follow.
+- Single-date favorites get a 7-day heads-up and a day-before reminder. Event favorites get only the day-before reminder.
+- Reminders are on by default for every favorite. Users turn them off for each favorite.
