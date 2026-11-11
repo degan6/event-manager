@@ -29,7 +29,7 @@
     <% else %>
       <% login_label = "Log in to #{follow_label.downcase}" %>
       <%= button_to login_favorites_path, method: :post,
-            params: { return_to: request.fullpath },
+            params: { event_id: event.id, event_occurrence_id: occurrence&.id, return_to: request.fullpath }.compact,
             form: { data: { turbo: false } },
             class: "btn btn-sm btn-outline-secondary #{'px-2' if compact}",
             title: login_label,

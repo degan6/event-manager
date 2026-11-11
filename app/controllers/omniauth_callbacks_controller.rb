@@ -32,6 +32,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   end
 
   def after_sign_in_path_for(resource)
+    FavoriteLogin.finish(self, resource)
     RsvpLogin.finish(self, resource) || super
   end
 end

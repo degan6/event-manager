@@ -7,12 +7,22 @@ RSpec.describe 'Favorites', type: :request do
 
   before { SiteConfig.current }
 
+  around(:each, :omniauth) do |example|
+    previous_mode = OmniAuth.config.test_mode
+    previous_auth = OmniAuth.config.mock_auth[:authentik]
+    OmniAuth.config.test_mode = true
+    example.run
+  ensure
+    OmniAuth.config.test_mode = previous_mode
+    OmniAuth.config.mock_auth[:authentik] = previous_auth
+  end
+
   it 'shows a log-in link to a visitor and returns them to the event' do
     get event_path(event)
 
     expect(response.parsed_body.at_css('form[action="/favorites/login"][data-turbo="false"]')).to be_present
 
-    post login_favorites_path, params: { return_to: event_path(event) }
+    post login_favorites_path, params: { event_id: event.id, return_to: event_path(event) }
 
     expect(response).to redirect_to(new_user_session_path)
     expect(session['user_return_to']).to eq(event_path(event))
@@ -30,17 +40,94 @@ RSpec.describe 'Favorites', type: :request do
       expect(button['title']).to eq(label)
       expect(button['aria-label']).to eq("#{label} #{event.title}")
       expect(form.at_css('input[name="return_to"]')['value']).to eq(event_occurrence_path(occurrence))
+      expect(form.at_css('input[name="event_id"]')['value']).to eq(event.id.to_s)
+      expect(form.at_css('input[name="event_occurrence_id"]')&.[]('value')).to eq(variant == 'date' ? occurrence.id.to_s : nil)
     end
   end
 
-  it 'returns visitors to the date after logging in' do
-    post login_favorites_path, params: { return_to: event_occurrence_path(occurrence) }
+  describe 'following after login' do
+    before do
+      post login_favorites_path, params: {
+        event_id: event.id, event_occurrence_id: occurrence.id, return_to: event_occurrence_path(occurrence)
+      }
+      follow_redirect!
+    end
 
-    expect(response).to redirect_to(new_user_session_path)
-    follow_redirect!
-    post user_session_path, params: { user: { email: member.email, password: member.password } }
+    it 'follows the selected date and returns to it' do
+      expect(response.parsed_body.at_css('form#new_user[data-turbo="false"]')).to be_present
+      log_in
 
-    expect(response).to redirect_to(event_occurrence_path(occurrence))
+      expect(response).to redirect_to(event_occurrence_path(occurrence))
+      expect(member.favorites.find_by(event: event, event_occurrence: occurrence)).to be_present
+      expect(session[:pending_favorite]).to be_nil
+      follow_redirect!
+      expect(response.body).to include('Following this date')
+    end
+
+    it 'remembers the selected date after an incorrect password' do
+      post user_session_path, params: { user: { email: member.email, password: 'incorrect' } }
+      expect(member.favorites).to be_empty
+      log_in
+
+      expect(member.favorites.find_by(event_occurrence: occurrence)).to be_present
+    end
+
+    it 'follows every date when the series button was selected' do
+      post login_favorites_path, params: { event_id: event.id, return_to: event_occurrence_path(occurrence) }
+      follow_redirect!
+      log_in
+
+      expect(member.favorites.find_by(event: event, event_occurrence: nil)).to be_present
+      expect(member.favorites.for_occurrences).to be_empty
+      follow_redirect!
+      expect(response.body).to include('Following every date')
+    end
+
+    it 'does not duplicate an existing follow' do
+      create(:favorite, user: member, event: event, event_occurrence: occurrence)
+      expect { log_in }.not_to change(Favorite, :count)
+      expect(response).to redirect_to(event_occurrence_path(occurrence))
+    end
+
+    it 'checks visibility again after authentication' do
+      event.update!(visibility: 'private')
+      expect { log_in }.not_to change(Favorite, :count)
+      expect(flash[:alert]).to include('no longer available')
+    end
+
+    it 'does not follow when the feature was disabled during login' do
+      SiteConfig.current.update!(favorites_enabled: false)
+      expect { log_in }.not_to change(Favorite, :count)
+      expect(flash[:alert]).to include('turned off')
+    end
+
+    it 'does not fall back to the series if the chosen date was removed' do
+      occurrence.destroy!
+      expect { log_in }.not_to change(Favorite, :count)
+      expect(flash[:alert]).to include('no longer available')
+    end
+
+    it 'consumes the action so another login does not re-follow' do
+      log_in
+      member.favorites.destroy_all
+      sign_out member
+      expect { log_in }.not_to change(Favorite, :count)
+    end
+
+    it 'also follows after Authentik authentication', :omniauth do
+      member.update!(provider: 'authentik', uid: 'favorite-test')
+      auth = OmniAuth::AuthHash.new(provider: 'authentik', uid: member.uid, info: { email: member.email, name: member.name })
+      OmniAuth.config.mock_auth[:authentik] = auth
+      get user_authentik_omniauth_callback_path
+
+      expect(response).to redirect_to(event_occurrence_path(occurrence))
+      expect(member.favorites.find_by(event_occurrence: occurrence)).to be_present
+    end
+  end
+
+  it 'does not follow anything after an ordinary login' do
+    get new_user_session_path
+    expect { log_in }.not_to change(Favorite, :count)
   end
 
   it 'lets a member follow and unfollow an event' do
@@ -130,4 +217,9 @@ RSpec.describe 'Favorites', type: :request do
     expect(response).to redirect_to(root_path)
     expect(Favorite.exists?(favorite.id)).to be false
   end
+
+  def log_in
+    post user_session_path, params: { user: { email: member.email, password: member.password } }
+  end
+
 end

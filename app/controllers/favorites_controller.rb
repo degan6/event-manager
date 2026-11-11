@@ -39,6 +39,8 @@ class FavoritesController < ApplicationController
   end
 
   def login
+    load_target
+    session[:pending_favorite] = { "event_id" => @event.id, "occurrence_id" => @occurrence&.id }
     store_location_for(:user, safe_return_path)
     redirect_to new_user_session_path
   end
