@@ -37,7 +37,10 @@ RSpec.describe 'Favorites', type: :request do
     post login_favorites_path, params: { return_to: event_occurrence_path(occurrence) }
 
     expect(response).to redirect_to(new_user_session_path)
-    expect(session['user_return_to']).to eq(event_occurrence_path(occurrence))
+    follow_redirect!
+    post user_session_path, params: { user: { email: member.email, password: member.password } }
+
+    expect(response).to redirect_to(event_occurrence_path(occurrence))
   end
 
   it 'lets a member follow and unfollow an event' do
