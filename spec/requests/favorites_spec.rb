@@ -10,12 +10,34 @@ RSpec.describe 'Favorites', type: :request do
   it 'shows a log-in link to a visitor and returns them to the event' do
     get event_path(event)
 
-    expect(response.body).to include('Log in to follow')
+    expect(response.parsed_body.at_css('form[action="/favorites/login"][data-turbo="false"]')).to be_present
 
     post login_favorites_path, params: { return_to: event_path(event) }
 
     expect(response).to redirect_to(new_user_session_path)
     expect(session['user_return_to']).to eq(event_path(event))
+  end
+
+  { 'date' => 'Log in to follow this date', 'series' => 'Log in to follow every date' }.each do |variant, label|
+    it "labels the #{variant} login control and submits it outside Turbo" do
+      get event_occurrence_path(occurrence)
+
+      frame_id = variant == 'date' ? "favorite_event_occurrence_#{occurrence.id}" : "favorite_event_#{event.id}"
+      form = response.parsed_body.at_css("##{frame_id} form")
+      button = form.at_css('button')
+      expect(form['data-turbo']).to eq('false')
+      expect(button.text.strip).to eq(label)
+      expect(button['title']).to eq(label)
+      expect(button['aria-label']).to eq("#{label} #{event.title}")
+      expect(form.at_css('input[name="return_to"]')['value']).to eq(event_occurrence_path(occurrence))
+    end
+  end
+
+  it 'returns visitors to the date after logging in' do
+    post login_favorites_path, params: { return_to: event_occurrence_path(occurrence) }
+
+    expect(response).to redirect_to(new_user_session_path)
+    expect(session['user_return_to']).to eq(event_occurrence_path(occurrence))
   end
 
   it 'lets a member follow and unfollow an event' do

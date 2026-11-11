@@ -27,13 +27,15 @@
         <% unless compact %><%= follow_label %><% end %>
       <% end %>
     <% else %>
+      <% login_label = "Log in to #{follow_label.downcase}" %>
       <%= button_to login_favorites_path, method: :post,
             params: { return_to: request.fullpath },
+            form: { data: { turbo: false } },
             class: "btn btn-sm btn-outline-secondary #{'px-2' if compact}",
-            title: "Log in to follow",
-            aria: { label: "Log in to follow #{event.title}" } do %>
+            title: login_label,
+            aria: { label: "#{login_label} #{event.title}" } do %>
         <i class="bi bi-star" aria-hidden="true"></i>
-        <% unless compact %>Log in to follow<% end %>
+        <% unless compact %><%= login_label %><% end %>
       <% end %>
     <% end %>
   <% end %>
